@@ -34,7 +34,7 @@ const extender = {};
  * @param {Array} options.extend
  * @returns an FilestreamLogger instance is a function
  **/
-const makeLogger = (type, options) => {
+const makeLogger = (type, options = {}) => {
 	const dirpath = path.join(options.dir || "loggers", type);
 	if (extender[dirpath])
 		throw Error(`A logger at dirpath "${dirpath}" already exists`);
@@ -46,7 +46,10 @@ const makeLogger = (type, options) => {
 	const formatter = options.formatter || defaultFormatter;
 	const queue = new CallbackQueue();
 	queue.push(callback => fs.mkdir(dirpath, { recursive: true }, callback));
-	let _name = options.name || new Date().toLocaleDateString();
+	let _name = options.name || (() => {
+		const date = new Date();
+		return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+	})();
 	let _filepath = path.join(dirpath, _name + ".log");
 	let _writable;
 	queue.push(callback => {
@@ -89,9 +92,9 @@ const makeLogger = (type, options) => {
 			if (name !== _name) {
 				_name = name;
 				const oldFilepath = _filepath;
-				_filepath = path.join(dirpath, name + ".log");
+				const newFilepath = _filepath = path.join(dirpath, name + ".log");
 				queue.push(callback => {
-					const writable = fs.createWriteStream(_filepath, { flags: "a+" });
+					const writable = fs.createWriteStream(newFilepath, { flags: "a+" });
 					writable.once("ready", () => {
 						_writable.end(() => {
 							_writable = writable;
