@@ -7,44 +7,66 @@ const makeLogger = require("filestream-logger");
 ```
 <h3><code>makeLogger(type[,options])</code></h3>
 <ul>
-	<li><code>type</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a></li>
-	<li><code>options</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object">&lt;Object&gt;</a></li>
-	<ul>
-		<li><code>dir</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a> Default: <code>loggers</code></li>
-		<li><code>name</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a> Default: <code>monkey</code></li>
-		<li><code>formatter</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">&lt;Function&gt;</a> Default: <code>(data, callback) => callback(data.join(" "))</code></li>
+	<details>
+		<summary>
+			<code>type</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a> parameter is <b>required!</b>
+		</summary>
+		The <code>type</code> parameter determines the name of the sub-directory in which the <code>filestreamLogger</code> creates log files. Additionally the filestreamLogger's function is named after type. If the sub-directory did not exists it is created.
+	</details>
+	<details>
+		<summary>
+			<code>options</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object">&lt;Object&gt;</a>
+		</summary>
 		<ul>
-			<li><code>data</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a></li>
-			<li><code>callback</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">&lt;Function&gt;</a> Required!</li>
+			<details>
+				<summary>
+					<code>dir</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a> Default: <code>loggers</code>
+				</summary>
+				The <code>dir</code> option determines the name of the main-directory in which the <code>filestreamLogger</code> creates a sub-directory which in turn is where the log files are created. If the main-directory did not exists it is created.
+			</details>
+			<details>
+				<summary>
+					<code>name</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a> Default: <code>new Date().toLocaleDateString()</code>
+				</summary>
+				The <code>name</code> option determines how the first log file is named. If the log file did not exists it is created.
+			</details>
+			<details>
+				<summary>
+					<code>formatter</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">&lt;Function&gt;</a> Default: <code>(data, callback) => callback(data.join(" "))</code>
+				</summary>
+				<ul>
+					<details>
+						<summary>
+							<code>data</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>
+						</summary>
+					</details>
+					<details>
+						<summary>
+							<code>callback</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">&lt;Function&gt;</a> parameter is <b>required!</b>
+						</summary>
+						Invoke <code>callback</code> and pass over a fromatted-string so that it can be streamed to the log file.
+					</details>
+				</ul>
+				The <code>formatter</code> is a function that must produce a fromatted-string from the items of the <code>data</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>. When the <code>formatter</code> has finished to produce a fromatted-string, <code>callback</code> must be invoked and the fromatted-string must be passed as parameter.
+			</details>
+			<details>
+				<summary>
+					<code>extend</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>
+				</summary>
+				The <code>extend</code> option must contain <code>filestreamLoggers</code>. The created <code>filestreamLogger</code> stores an <code>xLog</code> from every <code>filestreamLogger</code> out of <code>extend</code>. Whenever this  <code>filestreamLogger</code> is invoked to log data, the formatted string is also passed over to all <code>xLogs</code>. Checkout the  examples to see how an error logger is extended with a((n) everything) logger. 
+			</details>
 		</ul>
-	</ul>
-	<li>Returns <code>new Log()</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">&lt;Function&gt;</a></li>
+	</details>
+	<details>
+		<summary>
+			Returns <code>new FilestreamLogger()</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">&lt;Function&gt;</a>
+		</summary>
+		The <code>filestreamLogger</code> is a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">Function</a> and when invoked it immediately invokes <code>formatter</code> followed by streaming the formatted string to the log file.
+	</details>
 </ul>
-The <code>dir</code> option allows the developer to specify in which main-branch the logger will document it's log file(s). The <code>type</code> option  allows the developer to specify in which sub-branch the logger will document it's log file(s). It also determines how you can access the log function from the logger Object. The <code>name</code> option allows the developer to specify  how the log file will be named.The <code>autoRemoveEmpty</code> option automatically removes a log file when the <code>name</code> has been changed by <code>setName</code> and if the content is empty, unless set to <code>false</code>. The <code>formatter</code> is a function that allows the developer to manipulate the log string into desired format, the function's second parameter <code>callback</code> must be used to pass through the self-formatted string. The <code>extend</code> option allows the developer to extend a logger[type2] with a logger[type1] so that logger[type2] will also log it's data to the log file from logger[type1]. Checkout out the example below to see how multiple modules with callbacks can be chained in a formatter function and to see how logger.error is extended from logger.log. 
-<h2>Class: <code>Log</code></h2>
-<h2><code>logger</code></h2>
-<pre><code>(async function loadApplication() {
-    await new Logger("log");
-    // OUTPUT: ./loggers/log/monkey.log
-    await new Logger("error");
-    // OUTPUT: ./loggers/error/monkey.log
-    // ...
-    console.log(logger);
-    // returns:
-    // {
-    //     log: [Function: log] {
-    //         filepath: 'loggers\\log\\monkey.log',
-    //         once: [Function],
-    //         setName: [Function]
-    //     },
-    //     error: [Function: log] {
-    //         filepath: 'loggers\\error\\monkey.log',
-    //         once: [Function],
-    //         setName: [Function]
-    //     }
-    // }
-}());</code></pre>
-<h2><code>logger[type]</code></h2>
+<h2>Class: <code>FilestreamLogger</code></h2>
+The class <code>FilestreamLogger</code>'s prototype is the <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">Function</a> prototype and has own methods. 
+<h2><code>filestreamLogger</code></h2>
 <h3>Event: <code>'ready'</code></h3>
 This event runs the <code>callback</code> as soon as all calls to <code>logger[type](...data)</code>, that have been called before listening to the 'ready' event, have finished writing to the log file. This event can also be used to fire the callback after a call to <code>setName</code> has finished.
 <pre><code>(async function loadApplication() {
