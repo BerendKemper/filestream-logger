@@ -11,7 +11,7 @@ const makeLogger = require("filestream-logger");
 		<summary>
 			<code>type</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a> parameter is <b>required!</b>
 		</summary>
-		The <code>type</code> parameter determines the name of the sub-directory in which the <code>filestreamLogger</code> creates log files. Additionally the filestreamLogger's function is named after type. If the sub-directory did not exists it is created.
+		The <code>type</code> parameter determines the name of the sub-directory in which the <code>filestreamLogger</code> creates log files. Additionally the <code>filestreamLogger</code>'s function is named after <code>type</code>. If the sub-directory did not exists it is created.
 	</details>
 	<details>
 		<summary>
@@ -20,7 +20,7 @@ const makeLogger = require("filestream-logger");
 		<ul>
 			<details>
 				<summary>
-					<code>dir</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a> Default: <code>loggers</code>
+					<code>dir</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a> Default: <code>"loggers"</code>
 				</summary>
 				The <code>dir</code> option determines the name of the main-directory in which the <code>filestreamLogger</code> creates a sub-directory which in turn is where the log files are created. If the main-directory did not exists it is created.
 			</details>
@@ -39,6 +39,7 @@ const makeLogger = require("filestream-logger");
 						<summary>
 							<code>data</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>
 						</summary>
+						If the <code>formatter</code> cannot format objects into a nicely formatted string, recommended is that the <code>data</code> should contain only <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#primitive_values">&lt;primitive values&gt;</a>. This does not apply if a developer wrote a formatter that can format objects into formatted string such as console.log can. 
 					</details>
 					<details>
 						<summary>
@@ -67,19 +68,18 @@ const makeLogger = require("filestream-logger");
 <h2>Class: <code>FilestreamLogger</code></h2>
 The class <code>FilestreamLogger</code>'s prototype is the <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">Function</a> prototype and has own methods. 
 <h2><code>filestreamLogger</code></h2>
-<h3>Event: <code>'ready'</code></h3>
-This event runs the <code>callback</code> as soon as all calls to <code>logger[type](...data)</code>, that have been called before listening to the 'ready' event, have finished writing to the log file. This event can also be used to fire the callback after a call to <code>setName</code> has finished.
-<pre><code>(async function loadApplication() {
-    const { Logger, logger } = require("monkey-logger");
-    // ...
-    await new Logger("log");
-    await new Logger("error", { extend: [logger.log] });
-    // ...
-    process.on("SIGINT", () => {
-        logger.error("Node JS is now shutting down due to ctrl + c");
-        logger.error.on("ready", () => process.exit());
-    });
-}());</code></pre>
+<h3><code>filestreamLogger.setName(name)</code></h3>
+
+<h3><code>filestreamLogger.onReady(callback)</code></h3>
+This method invokes <code>callback</code> when all previously queued functions have finished.
+
+
+
+<h3><code>filestreamLogger.destroy()</code></h3>
+
+<h3><code>filestreamLogger.extend(filestreamLogger)</code></h3>
+
+
 <h3><code>logger[type].filepath</code></h3>
 The <code>filepath</code> property is internally created by <a href="https://nodejs.org/dist/latest-v12.x/docs/api/path.html#path_path_join_paths">path.join</a>(<code>dir</code>, <code>type</code>, <code>name</code>). Overwriting this property does not break the code, however it might break yours.
 <h3><code>logger[type].once(event, callback)</code></h3>
@@ -111,7 +111,24 @@ Deleting a <code>type</code> from the <code>logger</code> Object also causes the
     console.log(logger);
     // {}
 }());</code></pre>
-<h2>Example</h2>
+<h2>Examples</h2>
+
+```javascript
+const makeLogger = require("filestream-logger");
+const TaskClock = require("task-clock");
+const IndentModel = require("indent-model");
+const LocaleTimezoneDate = require("locale-timezone-date");
+// ...
+const logger = {};
+logger.log = makeLogger("log");
+logger.error = makeLogger("error", { extend: [logger.log] });
+// ...
+process.on("SIGINT", () => {
+	logger.error("Node JS is now shutting down due to pressing ctrl + c");
+	logger.log.onReady(() => process.exit());
+});
+```
+
 <pre><code>(async function loadApplication() {
     const { Logger, logger } = require("monkey-logger");
     const { localeTimezoneDate, dateNotation, utc0 } = require("locale-timezone-date");
