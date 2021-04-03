@@ -46,7 +46,7 @@ const makeLogger = (type, options) => {
 	const formatter = options.formatter || defaultFormatter;
 	const queue = new CallbackQueue();
 	queue.push(callback => fs.mkdir(dirpath, { recursive: true }, callback));
-	let _name = options.name || "monkey";
+	let _name = options.name || new Date().toLocaleDateString();
 	let _filepath = path.join(dirpath, _name + ".log");
 	let _writable;
 	queue.push(callback => {
