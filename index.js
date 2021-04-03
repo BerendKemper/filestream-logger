@@ -10,9 +10,9 @@ const destroyEmptyLogfile = filepath => {
 	}), 1000);
 };
 const xLog = xLogger => {
-	if (!extender[xLogger.type])
+	if (!extender[xLogger.dirpath])
 		throw new TypeError(`At index ${ix} of extend[] found typeof ${typeof xLogger}, this is not a logger`);
-	return extender[xLogger.type]
+	return extender[xLogger.dirpath]
 };
 const extendLoggers = loggers => {
 	const extend = new Array(loggers.length);
@@ -35,14 +35,14 @@ const extender = {};
  * @returns an FilestreamLogger instance is a function
  **/
 const makeLogger = (type, options) => {
-	if (extender[type])
-		throw Error("A logger of type " + type + " already exists");
+	const dirpath = path.join(options.dir || "loggers", type);
+	if (extender[dirpath])
+		throw Error(`A logger at dirpath "${dirpath}" already exists`);
 	let extend = options.extend || [];
 	if (!Array.isArray(extend))
 		throw new TypeError("the parameter extend must be an Array");
 	if (extend.length > 0)
 		extend = extendLoggers(extend);
-	const dirpath = path.join(options.dir || "loggers", type);
 	const formatter = options.formatter || defaultFormatter;
 	const queue = new CallbackQueue();
 	queue.push(callback => fs.mkdir(dirpath, { recursive: true }, callback));
@@ -53,7 +53,7 @@ const makeLogger = (type, options) => {
 		_writable = fs.createWriteStream(_filepath, { flags: "a+" });
 		_writable.once("ready", callback);
 	});
-	extender[type] = logBuffer => queue.push(callback => _writable.write(logBuffer, callback));
+	extender[dirpath] = logBuffer => queue.push(callback => _writable.write(logBuffer, callback));
 	function FilestreamLogger() {
 		return Object.setPrototypeOf(({
 			[type](...data) {
@@ -68,11 +68,11 @@ const makeLogger = (type, options) => {
 	};
 	FilestreamLogger.prototype = {
 		/**
-		 * Readable property of the type is used internally to store the xLog which allows
+		 * Readable property of the dirpath is used internally to store the xLog which allows
 		 * extending loggers.
 		 */
-		get type() {
-			return type;
+		get dirpath() {
+			return dirpath;
 		},
 		/**
 		 * Readable property of the path from the file that is currently being logged to.
@@ -120,7 +120,7 @@ const makeLogger = (type, options) => {
 		destroy() {
 			queue.push(() => {
 				_writable.end(() => {
-					delete (extender[type]);
+					delete (extender[dirpath]);
 					destroyEmptyLogfile(_filepath);
 					queue.clear();
 				});
