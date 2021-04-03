@@ -11,7 +11,7 @@ const destroyEmptyLogfile = filepath => {
 };
 const xLog = xLogger => {
 	if (!extender[xLogger.dirpath])
-		throw new TypeError(`At index ${ix} of extend[] found typeof ${typeof xLogger}, this is not a logger`);
+		throw new TypeError(`Can only extend FilestreamLoggers, found ${typeof xLogger}`);
 	return extender[xLogger.dirpath]
 };
 const extendLoggers = loggers => {
@@ -89,7 +89,6 @@ const makeLogger = (type, options) => {
 			if (name !== _name) {
 				_name = name;
 				const oldFilepath = _filepath;
-				const xLog = extender[_filepath];
 				_filepath = path.join(dirpath, name + ".log");
 				queue.push(callback => {
 					const writable = fs.createWriteStream(_filepath, { flags: "a+" });

@@ -69,15 +69,36 @@ const makeLogger = require("filestream-logger");
 The class <code>FilestreamLogger</code>'s prototype is the <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">Function</a> prototype and has own methods. 
 <h2><code>filestreamLogger</code></h2>
 <h3><code>filestreamLogger.setName(name)</code></h3>
-
+<ul>
+	<details>
+		<summary>
+			<code>name</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a>
+		</summary>
+		If <code>name</code> is set to the name it already had nothing will happen.
+	</details>
+</ul>
+This method immediately updates the <code>name</code> and <code>filepath</code> and when all previously queued functions have finished it will create a new <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_createwritestream_path_options">fs.WriteStream</a> at the new <code>filepath</code>. This method blocks <code>filestreamLogger</code>'s queued functions until the writestream is ready. Once ready this method destroys the log file at the previous <code>filepath</code> if it has no content.
 <h3><code>filestreamLogger.onReady(callback)</code></h3>
+<ul>
+	<details>
+		<summary>
+			<code>callback</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">&lt;Function&gt;</a>
+		</summary>
+		If <code>callback</code> is not a function throws a TypeError.
+	</details>
+</ul>
 This method invokes <code>callback</code> when all previously queued functions have finished.
-
-
-
 <h3><code>filestreamLogger.destroy()</code></h3>
-
+This method removes the <code>filestreamLogger</code> <code>xLog</code>, ends the writestream, clears the queue and destroys the log file at the current <code>filepath</code> if it has no content.
 <h3><code>filestreamLogger.extend(filestreamLogger)</code></h3>
+<ul>
+	<details>
+		<summary>
+			<code>filestreamLogger</code> &lt;FilestreamLogger&gt;
+		</summary>
+		If <code>filestreamLogger</code> is not a <code>FilestreamLogger</code> throws a TypeError.
+	</details>
+</ul>
 
 
 <h3><code>logger[type].filepath</code></h3>
