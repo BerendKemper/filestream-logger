@@ -2,17 +2,13 @@
 const fs = require("fs");
 const path = require("path");
 const CallbackQueue = require("ca11back-queue");
+const onWritableClose = require("./lib/onWritableClose");
+const yyyymmdd = require("./lib/yyyymmdd");
 const defaultFormatter = (data, callback) => callback(data.join(" "));
-const destroyEmptyLogfile = filepath => {
-	setTimeout(() => fs.readFile(filepath, { flag: 'r' }, (err, data) => {
-		if (err === null && data.length === 0)
-			fs.unlinkSync(filepath);
-	}), 1000);
-};
 const xLog = xLogger => {
-	if (!extender[xLogger.dirpath])
+	if (!extenders[xLogger.dirpath])
 		throw new TypeError(`Can only extend FilestreamLoggers, found ${typeof xLogger}`);
-	return extender[xLogger.dirpath]
+	return extenders[xLogger.dirpath];
 };
 const extendLoggers = loggers => {
 	const extend = new Array(loggers.length);
@@ -21,7 +17,7 @@ const extendLoggers = loggers => {
 		extend[ix] = xLog(loggers[ix]);
 	return extend;
 };
-const extender = {};
+const extenders = {};
 /**
  * Makes a log function. The log function invokes the formatter then streams the
  * formatted string the log file. Extended log functions will stream it's formatted
@@ -36,7 +32,7 @@ const extender = {};
  **/
 const makeLogger = (type, options = {}) => {
 	const dirpath = path.join(options.dir || "loggers", type);
-	if (extender[dirpath])
+	if (extenders[dirpath])
 		throw Error(`A logger at dirpath "${dirpath}" already exists`);
 	let extend = options.extend || [];
 	if (!Array.isArray(extend))
@@ -46,17 +42,15 @@ const makeLogger = (type, options = {}) => {
 	const formatter = options.formatter || defaultFormatter;
 	const queue = new CallbackQueue();
 	queue.push(callback => fs.mkdir(dirpath, { recursive: true }, callback));
-	let _name = options.name || (() => {
-		const date = new Date();
-		return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
-	})();
+	let _name = options.name || yyyymmdd();
 	let _filepath = path.join(dirpath, _name + ".log");
 	let _writable;
 	queue.push(callback => {
 		_writable = fs.createWriteStream(_filepath, { flags: "a+" });
 		_writable.once("ready", callback);
+		onWritableClose(_filepath, _writable);
 	});
-	extender[dirpath] = logBuffer => queue.push(callback => _writable.write(logBuffer, callback));
+	extenders[dirpath] = logBuffer => queue.push(callback => _writable.write(logBuffer, callback));
 	function FilestreamLogger() {
 		return Object.setPrototypeOf(({
 			[type](...data) {
@@ -89,21 +83,20 @@ const makeLogger = (type, options = {}) => {
 		 * @param {String} name 
 		 */
 		setName(name) {
-			if (name !== _name) {
-				_name = name;
-				const oldFilepath = _filepath;
-				const newFilepath = _filepath = path.join(dirpath, name + ".log");
-				queue.push(callback => {
-					const writable = fs.createWriteStream(newFilepath, { flags: "a+" });
-					writable.once("ready", () => {
-						_writable.end(() => {
-							_writable = writable;
-							callback();
-							destroyEmptyLogfile(oldFilepath);
-						});
-					});
-				});
-			}
+			if (name === _name)
+				return;
+			_name = name;
+			const newFilepath = _filepath = path.join(dirpath, name + ".log");
+			if (!_writable)
+				return;
+			queue.push(callback => {
+				const writable = fs.createWriteStream(newFilepath, { flags: "a+" });
+				writable.once("ready", () => _writable.end(() => {
+					_writable = writable;
+					callback();
+				}));
+				onWritableClose(newFilepath, _writable);
+			});
 		},
 		/**
 		 * This method pushes the callback in a queue and the callback is invoked only
@@ -120,13 +113,10 @@ const makeLogger = (type, options = {}) => {
 		 * destroys the log file at the current filepath if it has no content.
 		 */
 		destroy() {
-			queue.push(() => {
-				_writable.end(() => {
-					delete (extender[dirpath]);
-					destroyEmptyLogfile(_filepath);
-					queue.clear();
-				});
-			});
+			queue.push(() => _writable.end(() => {
+				delete (extenders[dirpath]);
+				queue.clear();
+			}));
 		},
 		/**
 		 * Extend a filestreamLoggers after it's been created.
