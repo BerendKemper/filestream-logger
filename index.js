@@ -5,19 +5,35 @@ const CallbackQueue = require("ca11back-queue");
 const onWritableClose = require("./lib/onWritableClose");
 const yyyymmdd = require("./lib/yyyymmdd");
 const defaultFormatter = (data, callback) => callback(data.join(" "));
-const xLog = xLogger => {
-	if (!extenders[xLogger.dirpath])
-		throw new TypeError(`Can only extend FilestreamLoggers, found ${typeof xLogger}`);
-	return extenders[xLogger.dirpath];
+const getLoggersX = logger => {
+	if (!xLoggers[logger.dirpath])
+		throw new TypeError(`Can only extend FilestreamLoggers, found ${typeof logger}`);
+	return xLoggers[logger.dirpath];
 };
 const extendLoggers = loggers => {
 	const extend = new Array(loggers.length);
 	let ix = -1;
 	while (++ix < loggers.length)
-		extend[ix] = xLog(loggers[ix]);
+		extend[ix] = getLoggersX(loggers[ix]).extend(extend);
 	return extend;
 };
-const extenders = {};
+class CrossLogger {
+	extendedFrom = [];
+	constructor(dirpath, log) {
+		xLoggers[dirpath] = this;
+		this.log = log;
+	};
+	extend(xList) {
+		this.extendedFrom.push(xList);
+		return this.log;
+	};
+	destroy(dirpath) {
+		for (const xList of this.extendedFrom)
+			xList.splice(xList.indexOf(this.log), 1)
+		delete (xLoggers[dirpath]);
+	};
+};
+const xLoggers = {};
 /**
  * Makes a log function. The log function invokes the formatter then streams the
  * formatted string the log file. Extended log functions will stream it's formatted
@@ -32,7 +48,7 @@ const extenders = {};
  **/
 const makeLogger = (type, options = {}) => {
 	const dirpath = path.join(options.dir || "loggers", type);
-	if (extenders[dirpath])
+	if (xLoggers[dirpath])
 		throw Error(`A logger at dirpath "${dirpath}" already exists`);
 	let extend = options.extend || [];
 	if (!Array.isArray(extend))
@@ -50,7 +66,8 @@ const makeLogger = (type, options = {}) => {
 		_writable.once("ready", callback);
 		onWritableClose(_filepath, _writable);
 	});
-	extenders[dirpath] = logBuffer => queue.push(callback => _writable.write(logBuffer, callback));
+	const xLog = logBuffer => queue.push(callback => _writable.write(logBuffer, callback));
+	const x = new CrossLogger(dirpath, xLog);
 	function FilestreamLogger() {
 		return Object.setPrototypeOf(({
 			[type](...data) {
@@ -87,8 +104,8 @@ const makeLogger = (type, options = {}) => {
 				return;
 			_name = name;
 			const newFilepath = _filepath = path.join(dirpath, name + ".log");
-			if (!_writable)
-				return;
+			// if (!_writable)
+			// 	return;
 			queue.push(callback => {
 				const writable = fs.createWriteStream(newFilepath, { flags: "a+" });
 				writable.once("ready", () => _writable.end(() => {
@@ -109,12 +126,13 @@ const makeLogger = (type, options = {}) => {
 			queue.push(_callback => _callback(callback()));
 		},
 		/**
-		 * Removes the internal reference, ends the writestream, clears the queue and
-		 * destroys the log file at the current filepath if it has no content.
+		 * Ends the writestream, destroys the log file at the writestream's filepath if it has
+		 * no content, removes this logger from all from all other loggers extend lists and
+		 * clears the callback-queue.
 		 */
 		destroy() {
 			queue.push(() => _writable.end(() => {
-				delete (extenders[dirpath]);
+				x.destroy(dirpath);
 				queue.clear();
 			}));
 		},
@@ -124,7 +142,7 @@ const makeLogger = (type, options = {}) => {
 		 */
 		extend(filestreamLogger) {
 			queue.push(callback => {
-				extend.push(xLog(filestreamLogger));
+				extend.push(getLoggersX(filestreamLogger));
 				callback();
 			});
 		}
