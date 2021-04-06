@@ -97,8 +97,6 @@ This method immediately updates the <code>name</code> and <code>filepath</code> 
 	</details>
 </ul>
 This method invokes <code>callback</code> when all previously queued functions have finished.
-<h3><code>filestreamLogger.destroy()</code></h3>
-This method ends the <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_class_fs_writestream">writestream</a>, <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_unlink_path_callback">destroys</a> the log file at the writestream's <code>filepath</code> if it has no content, removes the logger's cross-log function from all from all other loggers extend lists and clears the <a href="https://www.npmjs.com/package/ca11back-queue">callback-queue</a> to prevent function scopes from within the callback-queue from referring to the <code>filestreamLogger</code> so that everything can be garbage collected. Check out the example below where logger.noob get destroyed and entirely garbage collected.
 <h3><code>filestreamLogger.extend(filestreamLogger)</code></h3>
 <ul>
 	<details>
@@ -109,6 +107,8 @@ This method ends the <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.h
 	</details>
 </ul>
 This method allows additionaly extending a <code>filestreamLogger</code> after being created. It finds the <code>filestreamLogger</code>'s <code>xLog</code> function and stored it. Whenever the <code>filestreamLogger</code> is invoked to log data, the formatted string is also passed over to all <code>xLogs</code>.
+<h3><code>filestreamLogger.destroy()</code></h3>
+This method ends the <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_class_fs_writestream">writestream</a>, <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_unlink_path_callback">destroys</a> the log file at the writestream's <code>filepath</code> if it has no content, removes the logger's cross-log function from all from all other loggers extend lists and clears the <a href="https://www.npmjs.com/package/ca11back-queue">callback-queue</a> to prevent function scopes from within the callback-queue from referring to the <code>filestreamLogger</code> so that everything can be garbage collected. Check out the example below where logger.noob get destroyed and entirely garbage collected.
 <h3><code>filestreamLogger.dirpath</code></h3>
 Readable property <code>dirpath</code> is created by <a href="https://nodejs.org/dist/latest-v14.x/docs/api/path.html#path_path_join_paths">path.join</a>(<code>dir</code>, <code>type</code>). This property never changes and it used to get a <code>filestreamLogger</code>'s <code>xLog</code>.
 <h3><code>filestreamLogger.filepath</code></h3>

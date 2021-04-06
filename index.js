@@ -66,20 +66,11 @@ const makeLogger = (type, options = {}) => {
 		_writable.once("ready", callback);
 		onWritableClose(_filepath, _writable);
 	});
-	const xLog = logBuffer => queue.push(callback => _writable.write(logBuffer, callback));
-	const x = new CrossLogger(dirpath, xLog);
-	function FilestreamLogger() {
-		return Object.setPrototypeOf(({
-			[type](...data) {
-				formatter(data, logString => {
-					const logBuffer = Buffer.from(logString + "\n", "utf8");
-					queue.push(callback => _writable.write(logBuffer, callback));
-					for (const xLog of extend)
-						xLog(logBuffer);
-				})
-			}
-		})[type], FilestreamLogger.prototype);
+	const x = new CrossLogger(dirpath, logBuffer => queue.push(callback => _writable.write(logBuffer, callback)));
+	function FilestreamLogger(log) {
+		return Object.setPrototypeOf(log, FilestreamLogger.prototype);
 	};
+	Object.setPrototypeOf(FilestreamLogger, Function);
 	FilestreamLogger.prototype = {
 		/**
 		 * Readable property of the dirpath is used internally to store the xLog which allows
@@ -126,6 +117,16 @@ const makeLogger = (type, options = {}) => {
 			queue.push(_callback => _callback(callback()));
 		},
 		/**
+		 * Extend a filestreamLoggers after it's been created.
+		 * @param {FilestreamLogger} filestreamLogger 
+		 */
+		extend(filestreamLogger) {
+			queue.push(callback => {
+				extend.push(getLoggersX(filestreamLogger));
+				callback();
+			});
+		},
+		/**
 		 * Ends the writestream, destroys the log file at the writestream's filepath if it has
 		 * no content, removes this logger from all from all other loggers extend lists and
 		 * clears the callback-queue.
@@ -135,20 +136,18 @@ const makeLogger = (type, options = {}) => {
 				x.destroy(dirpath);
 				queue.clear();
 			}));
-		},
-		/**
-		 * Extend a filestreamLoggers after it's been created.
-		 * @param {FilestreamLogger} filestreamLogger 
-		 */
-		extend(filestreamLogger) {
-			queue.push(callback => {
-				extend.push(getLoggersX(filestreamLogger));
-				callback();
-			});
 		}
 	};
-	Object.setPrototypeOf(FilestreamLogger, Function);
 	Object.setPrototypeOf(FilestreamLogger.prototype, Function.prototype);
-	return new FilestreamLogger();
+	return new FilestreamLogger(({
+		[type](...data) {
+			formatter(data, logString => {
+				const logBuffer = Buffer.from(logString + "\n", "utf8");
+				queue.push(callback => _writable.write(logBuffer, callback));
+				for (const xLog of extend)
+					xLog(logBuffer);
+			})
+		}
+	})[type]);
 };
 module.exports = makeLogger;
