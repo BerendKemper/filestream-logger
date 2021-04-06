@@ -98,7 +98,7 @@ This method immediately updates the <code>name</code> and <code>filepath</code> 
 </ul>
 This method invokes <code>callback</code> when all previously queued functions have finished.
 <h3><code>filestreamLogger.destroy()</code></h3>
-This method removes the <code>filestreamLogger</code> <code>xLog</code>, ends the writestream, clears the queue and destroys the log file at the current <code>filepath</code> if it has no content.
+This method ends the writestream, destroys the log file at the writestream's <code>filepath</code> if it has no content, removes this logger's cross-log function from all from all other loggers extend lists and clears the callback-queue.
 <h3><code>filestreamLogger.extend(filestreamLogger)</code></h3>
 <ul>
 	<details>
