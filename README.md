@@ -98,7 +98,7 @@ This method immediately updates the <code>name</code> and <code>filepath</code> 
 </ul>
 This method invokes <code>callback</code> when all previously queued functions have finished.
 <h3><code>filestreamLogger.destroy()</code></h3>
-This method ends the writestream, destroys the log file at the writestream's <code>filepath</code> if it has no content, removes this logger's cross-log function from all from all other loggers extend lists and clears the callback-queue.
+This method ends the <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_class_fs_writestream">writestream</a>, <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_unlink_path_callback">destroys</a> the log file at the writestream's <code>filepath</code> if it has no content, removes the logger's cross-log function from all from all other loggers extend lists and clears the <a href="https://www.npmjs.com/package/ca11back-queue">callback-queue</a> to prevent function scopes from within the callback-queue from referring to the <code>filestreamLogger</code> so that everything can be garbage collected. Check out the example below where logger.noob get destroyed and entirely garbage collected.
 <h3><code>filestreamLogger.extend(filestreamLogger)</code></h3>
 <ul>
 	<details>
@@ -123,9 +123,12 @@ const LocaleTimezoneDate = require("locale-timezone-date");
 //
 // ...
 //
+// Choose a text formatter however you like,
 const tabs5_4 = new IndentModel({ tabSize: 5, smallestSpace: 4 });
 const formatter = (data, callback) => {
+	// I want to see the time in my locale timezone
 	const isoStr = new LocaleTimezoneDate().toLocaleISOString();
+	// I want to see data aligned in tabs
 	const logString = tabs5_4.tabify(isoStr, ...data);
 	callback(logString);
 	console.log(logString);
@@ -138,10 +141,14 @@ logger.log = makeLogger("log", { formatter });
 logger.error = makeLogger("error", { formatter, extend: [logger.log] });
 logger.noob = makeLogger("noob");
 logger.noob.destroy();
+logger.noob("never gonna happen");
+logger.noob.onReady(() => console.log(`really never gonna happen, 
+all callbacks and logger.noob gets GC'd on the next line`));
 delete (logger.noob);
 //
 // ...
 //
+// Every day at 24h in your locale timezone set logger's name to yyyy-mm-dd.log
 class LoggerClock extends TaskClock {
 	constructor() {
 		super({ start: new Date(new Date().setHours(0, 0, 0, 0)), interval: { h: 24 } });
