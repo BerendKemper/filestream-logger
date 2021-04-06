@@ -133,19 +133,12 @@ const formatter = (data, callback) => {
 //
 // ...
 //
-const logger = {
-	destroy(name) {
-		this[name].destroy();
-		this[name].onReady(() => {
-			delete (this[name]);
-			console.log(name, " has been destroyed");
-		});
-	}
-};
-logger.log = makeLogger("log");
+const logger = {};
+logger.log = makeLogger("log", { formatter });
 logger.error = makeLogger("error", { formatter, extend: [logger.log] });
 logger.noob = makeLogger("noob");
-logger.destroy("noob");
+logger.noob.destroy();
+delete (logger.noob);
 //
 // ...
 //
@@ -166,6 +159,7 @@ const clock = new LoggerClock();
 //
 // ...
 //
+console.log(logger); // logger.noob is gone
 logger.log("GET", "/v1/someapi/mongol/1", "spider", "monkey");
 logger.log("CLOSED", "/v1/someapi/mongol/1", "spider", "monkey");
 logger.error("FAILED", "/v1/someapi/mongol/1", "find errors in " + logger.error.filepath, "monkey!");
@@ -177,15 +171,21 @@ logger.error.setName("monkey");
 logger.error("FAILED", "/v1/someapi/mongol/3", "find errors in " + logger.error.filepath, "monkey!");
 logger.log("GET", "/v1/someapi/mongol/2", "spider", "monkey");
 logger.log("CLOSED", "/v1/someapi/mongol/2", "spider", "monkey");
-// 2020-08-30T21:46:16.143+0200       GET       /v1/someapi/mongol/1     spider    monkey
-// 2020-08-30T21:46:16.150+0200       CLOSED    /v1/someapi/mongol/1     spider    monkey
-// 2020-08-30T21:46:16.151+0200       FAILED    /v1/someapi/mongol/1     find errors in loggers\error\2020-08-30.log       monkey!
-// 2020-08-30T21:46:16.153+0200       FAILED    /v1/someapi/mongol/2     find errors in loggers\error\2020-08-30.log       monkey!
-// 2020-08-30T21:46:16.155+0200       FAILED    /v1/someapi/mongol/3     find errors in loggers\error\noob.log        monkey!
-// 2020-08-30T21:46:16.156+0200       GET       /v1/someapi/mongol/2     spider    monkey
-// 2020-08-30T21:46:16.157+0200       CLOSED    /v1/someapi/mongol/2     spider    monkey
- // 2020-08-30T19:46:16.158Z done
-// ...
+logger.log.destroy(); // the next error will not log to logger.log
+logger.error("FAILED", "/v1/someapi/mongol/4", "find errors in " + logger.error.filepath, "monkey!");
+//
+//
+// { log: [Function: log], error: [Function: error] }
+// 2021-04-06T21:28:55.389+0200       GET       /v1/someapi/mongol/1     spider    monkey
+// 2021-04-06T21:28:55.390+0200       CLOSED    /v1/someapi/mongol/1     spider    monkey
+// 2021-04-06T21:28:55.390+0200       FAILED    /v1/someapi/mongol/1     find errors in loggers\error\2021-04-06.log       monkey!
+// 2021-04-06T21:28:55.390+0200       FAILED    /v1/someapi/mongol/2     find errors in loggers\error\2021-04-06.log       monkey!
+// 2021-04-06T21:28:55.391+0200       FAILED    /v1/someapi/mongol/3     find errors in loggers\error\monkey.log      monkey!
+// 2021-04-06T21:28:55.391+0200       GET       /v1/someapi/mongol/2     spider    monkey
+// 2021-04-06T21:28:55.392+0200       CLOSED    /v1/someapi/mongol/2     spider    monkey
+// 2021-04-06T21:28:55.392+0200       FAILED    /v1/someapi/mongol/4     find errors in loggers\error\monkey.log      monkey!
+//
+//
 // 1st OUTPUT: /loggers/log/2020-08-30.log
 // 2nd OUTPUT: /loggers/log/2020-08-30.log
 // 3rd OUTPUT: /loggers/error/2020-08-30.log + OUTPUT: /loggers/log/2020-08-30.log
@@ -193,11 +193,13 @@ logger.log("CLOSED", "/v1/someapi/mongol/2", "spider", "monkey");
 // 5th OUTPUT: /loggers/error/monkey.log + OUTPUT: /loggers/log/test.log
 // 6th OUTPUT: /loggers/log/test.log
 // 7th OUTPUT: /loggers/log/test.log
+// 8th OUTPUT /loggers/error/monkey.log (logger.log has been destroyed)
 //
 // ...
 //
 process.on("SIGINT", () => {
 	logger.error("Node JS is now shutting down due to pressing ctrl + c");
-	logger.log.onReady(() => process.exit());
+	// finish up all logs before exiting process
+	logger.log.onReady(() => process.exit()); 
 });
 ```
