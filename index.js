@@ -130,11 +130,13 @@ const makeLogger = (type, options = {}) => {
 		 * Ends the writestream, destroys the log file at the writestream's filepath if it has
 		 * no content, removes this logger from all from all other loggers extend lists and
 		 * clears the callback-queue.
+		 * @param {Function} callback 
 		 */
-		destroy() {
+		destroy(callback = () => console.log("destroyed logger ", type)) {
 			queue.push(() => _writable.end(() => {
 				x.destroy(dirpath);
 				queue.clear();
+				callback();
 			}));
 		}
 	};
