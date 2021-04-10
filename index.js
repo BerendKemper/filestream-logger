@@ -29,7 +29,7 @@ class CrossLogger {
 	};
 	destroy(dirpath) {
 		for (const xList of this.extendedFrom)
-			xList.splice(xList.indexOf(this.log), 1)
+			xList.splice(xList.indexOf(this.log), 1);
 		delete (xLoggers[dirpath]);
 	};
 };
