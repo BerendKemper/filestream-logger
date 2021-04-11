@@ -107,7 +107,20 @@ This method invokes <code>callback</code> when all previously queued functions h
 	</details>
 </ul>
 This method allows additionaly extending a <code>filestreamLogger</code> after being created. It finds the <code>filestreamLogger</code>'s <code>xLog</code> function and stored it. Whenever the <code>filestreamLogger</code> is invoked to log data, the formatted string is also passed over to all <code>xLogs</code>.
-<h3><code>filestreamLogger.destroy()</code></h3>
+<h3><code>filestreamLogger.destroy(callback)</code></h3>
+<ul>
+	<details>
+		<summary>
+			<code>callback</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">&lt;Function&gt;</a> Default: <code>dirpath => console.log("destroyed", dirpath)</code>
+		</summary>
+		<ul>
+			<summary>
+				<code>dirpath</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a>
+			</summary>
+		</ul>
+		The <code>callback</code> is invoked with the <code>filestreamLogger</code>'s <code>dirpath</code> as parameter.
+	</details>
+</ul>
 This method ends the <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_class_fs_writestream">writestream</a>, <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_unlink_path_callback">destroys</a> the log file at the writestream's <code>filepath</code> if it has no content, removes the logger's cross-log function from all from all other loggers extend lists and clears the <a href="https://www.npmjs.com/package/ca11back-queue">callback-queue</a> to prevent function scopes from within the callback-queue from referring to the <code>filestreamLogger</code> so that everything can be garbage collected. Check out the example below where logger.noob get destroyed and entirely garbage collected.
 <h3><code>filestreamLogger.dirpath</code></h3>
 Readable property <code>dirpath</code> is created by <a href="https://nodejs.org/dist/latest-v14.x/docs/api/path.html#path_path_join_paths">path.join</a>(<code>dir</code>, <code>type</code>). This property never changes and it used to get a <code>filestreamLogger</code>'s <code>xLog</code>.
@@ -207,6 +220,12 @@ logger.error("FAILED", "/v1/someapi/mongol/4", "find errors in " + logger.error.
 process.on("SIGINT", () => {
 	logger.error("Node JS is now shutting down due to pressing ctrl + c");
 	// finish up all logs before exiting process
-	logger.log.onReady(() => process.exit()); 
+	let i = 0;
+	const awaitExit = dirpath => {
+		console.log("destroyed", dirpath);
+		if (--i === 0) process.exit();
+	};
+	for (const type in logger)
+		logger[type].destroy(awaitExit, i++);
 });
 ```

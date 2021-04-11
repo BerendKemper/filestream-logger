@@ -132,11 +132,11 @@ const makeLogger = (type, options = {}) => {
 		 * clears the callback-queue.
 		 * @param {Function} callback 
 		 */
-		destroy(callback = () => console.log("destroyed logger ", type)) {
+		destroy(callback = dirpath => console.log("destroyed", dirpath)) {
 			queue.push(() => _writable.end(() => {
 				x.destroy(dirpath);
 				queue.clear();
-				callback();
+				callback(dirpath);
 			}));
 		}
 	};
