@@ -121,6 +121,7 @@ This method allows additionaly extending a <code>filestreamLogger</code> after b
 				The <code>callback</code> is invoked with the <code>filestreamLogger</code>'s <code>dirpath</code> as parameter.
 			</details>
 		</ul>
+		If <code>callback</code> is not a function throws a TypeError. Since the logger is destroyed the internal callback queue is cleared and therefore a <code>callback</code> parameter is usefull.
 	</details>
 </ul>
 This method ends the <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_class_fs_writestream">writestream</a>, <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_unlink_path_callback">destroys</a> the log file at the writestream's <code>filepath</code> if it has no content, removes the logger's cross-log function from all from all other loggers extend lists and clears the <a href="https://www.npmjs.com/package/ca11back-queue">callback-queue</a> to prevent function scopes from within the callback-queue from referring to the <code>filestreamLogger</code> so that everything can be garbage collected. Check out the example below where logger.noob get destroyed and entirely garbage collected.
