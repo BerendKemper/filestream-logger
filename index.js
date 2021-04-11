@@ -31,6 +31,7 @@ class CrossLogger {
 		for (const xList of this.extendedFrom)
 			xList.splice(xList.indexOf(this.log), 1);
 		delete (xLoggers[dirpath]);
+		delete (this.log);
 	};
 };
 const xLoggers = {};
@@ -95,8 +96,6 @@ const makeLogger = (type, options = {}) => {
 				return;
 			_name = name;
 			const newFilepath = _filepath = path.join(dirpath, name + ".log");
-			// if (!_writable)
-			// 	return;
 			queue.push(callback => {
 				const writable = fs.createWriteStream(newFilepath, { flags: "a+" });
 				writable.once("ready", () => _writable.end(() => {
@@ -128,8 +127,8 @@ const makeLogger = (type, options = {}) => {
 		},
 		/**
 		 * Ends the writestream, destroys the log file at the writestream's filepath if it has
-		 * no content, removes this logger from all from all other loggers extend lists and
-		 * clears the callback-queue.
+		 * no content, removes this logger's cross-log function from all from all loggers
+		 * and clears the callback-queue.
 		 * @param {Function} callback 
 		 */
 		destroy(callback = dirpath => console.log("destroyed", dirpath)) {
