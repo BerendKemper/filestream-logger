@@ -2,8 +2,8 @@
 const fs = require("fs");
 const path = require("path");
 const CallbackQueue = require("ca11back-queue");
-const onWritableClose = require("./lib/onWritableClose");
-const yyyymmdd = require("./lib/yyyymmdd");
+const onWritableClose = require("filestream-logger/lib/onWritableClose");
+const yyyymmdd = require("filestream-logger/lib/yyyymmdd");
 const defaultFormatter = (data, callback) => callback(data.join(" "));
 const getLoggersX = logger => {
 	if (!xLoggers[logger.dirpath])
@@ -132,11 +132,14 @@ const makeLogger = (type, options = {}) => {
 		 * @param {Function} callback 
 		 */
 		destroy(callback = dirpath => console.log("destroyed", dirpath)) {
-			queue.push(() => _writable.end(() => {
-				x.destroy(dirpath);
-				queue.clear();
-				callback(dirpath);
-			}));
+			queue.push(() => {
+				_writable.end();
+				_writable.on("close", () => {
+					x.destroy(dirpath);
+					queue.clear();
+					callback(dirpath);
+				});
+			});
 		}
 	};
 	Object.setPrototypeOf(FilestreamLogger.prototype, Function.prototype);
