@@ -3,15 +3,17 @@ A logger that creates a log-dir, that may change the logger's filename, that may
 <pre><code>npm i filestream-logger</code></pre>
 
 ```javascript
-const makeLogger = require("filestream-logger");
+const FilestreamLogger = require("filestream-logger");
 ```
-<h3><code>makeLogger(type[,options])</code></h3>
+<h2>Class: <code>FilestreamLogger</code></h2>
+
+<h3><code>new FilestreamLogger(type[,options])</code></h3>
 <ul>
 	<details>
 		<summary>
 			<code>type</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a> parameter is <b>required!</b>
 		</summary>
-		The <code>type</code> parameter determines the name of the sub-directory in which the <code>filestreamLogger</code> creates log files. Additionally the <code>filestreamLogger</code>'s function is named after <code>type</code>. If the sub-directory did not exists it is created.
+		The <code>type</code> parameter determines the name of the sub-directory in which the <code>filestreamLogger</code> creates log-files. If the sub-directory did not exists the creation is asynchronously queued.
 	</details>
 	<details>
 		<summary>
@@ -22,13 +24,13 @@ const makeLogger = require("filestream-logger");
 				<summary>
 					<code>dir</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a> Default: <code>"loggers"</code>
 				</summary>
-				The <code>dir</code> option determines the name of the main-directory in which the <code>filestreamLogger</code> creates a sub-directory which in turn is where the log files are created. If the main-directory did not exists it is created.
+				The <code>dir</code> option determines the name of the main-directory in which the <code>filestreamLogger</code> creates a sub-directory which in turn is where the log-files are created. If the main-directory did not exists the creation is asynchronously queued.
 			</details>
 			<details>
 				<summary>
 					<code>name</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a> Default: <code>new Date().toLocaleDateString()</code>
 				</summary>
-				The <code>name</code> option determines how the first log file is named. If the log file did not exists it is created.
+				The <code>name</code> option determines how the first log-file is named. If the log-file did not exists the creation is asynchronously queued.
 			</details>
 			<details>
 				<summary>
@@ -39,13 +41,13 @@ const makeLogger = require("filestream-logger");
 						<summary>
 							<code>data</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>
 						</summary>
-						If the <code>formatter</code> cannot format objects into a nicely formatted string, recommended is that the <code>data</code> should contain only <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#primitive_values">&lt;primitive values&gt;</a>. This does not apply if a developer wrote a formatter that can format objects into formatted string such as console.log can. 
+						If the <code>formatter</code> cannot format objects into a formatted string, it is recommended  that the <code>data</code> should contain only <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#primitive_values">&lt;primitive values&gt;</a>. This does not apply if a developer wrote a formatter that can format objects into formatted string such as console.log can. 
 					</details>
 					<details>
 						<summary>
 							<code>callback</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">&lt;Function&gt;</a> parameter is <b>required!</b>
 						</summary>
-						Invoke <code>callback</code> and pass over a fromatted-string so that it can be streamed to the log file.
+						Invoke <code>callback</code> and pass over a fromatted-string so that it can be written to the log-file.
 					</details>
 				</ul>
 				The <code>formatter</code> is a function that must produce a fromatted-string from the items of the <code>data</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>. When the <code>formatter</code> has finished to produce a fromatted-string, <code>callback</code> must be invoked and the fromatted-string must be passed as parameter.
@@ -54,19 +56,11 @@ const makeLogger = require("filestream-logger");
 				<summary>
 					<code>extend</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>
 				</summary>
-				The <code>extend</code> option must contain <code>filestreamLoggers</code>. The created <code>filestreamLogger</code> stores an <code>xLog</code> from every <code>filestreamLogger</code> out of <code>extend</code>. Whenever this <code>filestreamLogger</code> is invoked to log data, the formatted string is also passed over to all <code>xLogs</code>. Checkout the  examples to see how an error logger is extended with a((n) everything) logger. 
+				The <code>extend</code> option must contain <code>filestreamLoggers</code>. The created <code>filestreamLogger</code> stores an <code>xLog</code> from every <code>filestreamLogger</code> out of <code>extend</code>. Whenever this <code>filestreamLogger</code> is invoked to log data, the formatted string is also passed over to all <code>xLogs</code>. Checkout the examples to see how an logger.error is extended with a logger.log. 
 			</details>
 		</ul>
 	</details>
-	<details>
-		<summary>
-			Returns <code>new FilestreamLogger()</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">&lt;Function&gt;</a>
-		</summary>
-		The <code>filestreamLogger</code> is a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">Function</a> and when invoked it immediately invokes <code>formatter</code> followed by streaming the formatted string to the current log file.
-	</details>
 </ul>
-<h2>Class: <code>FilestreamLogger</code></h2>
-The class <code>FilestreamLogger</code>'s prototype is the <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">Function</a> prototype and has own methods. 
 <h3><code>filestreamLogger(...data)</code></h3>
 <ul>
 	<details>
@@ -76,7 +70,7 @@ The class <code>FilestreamLogger</code>'s prototype is the <a href="https://deve
 		The <code>data</code> catches all parameters passed over into a single array, just like console.log(...data). The <code>data</code> is passed over as a whole array (and not spread out to avoid an unnecessary loop) to <code>formatter</code>.
 	</details>
 </ul>
-The created <code>filestreamLogger</code> is a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">Function</a> and when invoked it immediately invokes <code>formatter</code> followed by streaming the formatted string to the current log file.
+The <code>filestreamLogger</code> instance is the logging <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">Function</a> and when invoked it immediately invokes <code>formatter</code> followed by writing the formatted string to the log-file.
 <h3><code>filestreamLogger.setName(name)</code></h3>
 <ul>
 	<details>
@@ -86,14 +80,14 @@ The created <code>filestreamLogger</code> is a <a href="https://developer.mozill
 		If <code>name</code> is set to the name it already had nothing will happen.
 	</details>
 </ul>
-This method immediately updates the <code>name</code> and <code>filepath</code> and when all previously queued functions have finished it will create a new <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_createwritestream_path_options">fs.WriteStream</a> at the new <code>filepath</code>. This method blocks <code>filestreamLogger</code>'s queued functions until the writestream is ready. Once ready this method destroys the log file at the previous <code>filepath</code> if it has no content.
+This method immediately updates the <code>name</code> and <code>filepath</code> and when all previously queued functions have finished it <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_open_path_flags_mode_callback">opens</a> a new fd to the new <code>filepath</code>, <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_read_fd_buffer_offset_length_position_callback">reads</a> one bit from the old <code>filepath</code>'s fd to see if it the log-file has content, <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_close_fd_callback">closes</a> the old <code>filepath</code>'s fd and and <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_unlink_path_callback">deletes</a> the old log-file if it has no content.
 <h3><code>filestreamLogger.onReady(callback)</code></h3>
 <ul>
 	<details>
 		<summary>
 			<code>callback</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">&lt;Function&gt;</a>
 		</summary>
-		If <code>callback</code> is not a function throws a TypeError.
+		If <code>callback</code> is not a function the extecution of <code>callback</code> throws a TypeError.
 	</details>
 </ul>
 This method invokes <code>callback</code> when all previously queued functions have finished.
@@ -124,7 +118,7 @@ This method allows additionaly extending a <code>filestreamLogger</code> after b
 		If <code>callback</code> is not a function throws a TypeError. Since the logger is destroyed the internal callback queue is cleared and therefore a <code>callback</code> parameter is usefull.
 	</details>
 </ul>
-This method ends the <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_class_fs_writestream">writestream</a>, <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_unlink_path_callback">destroys</a> the log file at the writestream's <code>filepath</code> if it has no content, removes the logger's cross-log function from all from all loggers and clears the <a href="https://www.npmjs.com/package/ca11back-queue">callback-queue</a> to prevent function scopes from within the callback-queue from referring to the <code>filestreamLogger</code> so that everything can be garbage collected. Check out the example below where logger.noob get destroyed and entirely garbage collected.
+This method <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_read_fd_buffer_offset_length_position_callback">reads</a> one bit from the <code>filepath</code>'s fd to see if it the log-file has content, <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_close_fd_callback">closes</a> the <code>filepath</code>'s fd, <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_unlink_path_callback">deletes</a> the log-file if it has no content, removes the <code>filestreamLogger</code>'s cross-log function from all from all <code>filestreamLoggers</code> and clears the <a href="https://www.npmjs.com/package/ca11back-queue">callback-queue</a> to prevent function scopes from within the callbackQueue from referring to the <code>filestreamLogger</code> so that everything can be garbage collected. Check out the example below where logger.noob get destroyed and entirely garbage collected.
 <h3><code>filestreamLogger.dirpath</code></h3>
 Readable property <code>dirpath</code> is created by <a href="https://nodejs.org/dist/latest-v14.x/docs/api/path.html#path_path_join_paths">path.join</a>(<code>dir</code>, <code>type</code>). This property never changes and it used to get a <code>filestreamLogger</code>'s <code>xLog</code>.
 <h3><code>filestreamLogger.filepath</code></h3>
@@ -132,7 +126,7 @@ Readable property <code>filepath</code> is created by <a href="https://nodejs.or
 <h2>Examples</h2>
 
 ```javascript
-const makeLogger = require("filestream-logger");
+const FilestreamLogger = require("filestream-logger");
 const TaskClock = require("task-clock");
 const IndentModel = require("indent-model");
 const LocaleTimezoneDate = require("locale-timezone-date");
@@ -153,9 +147,9 @@ const formatter = (data, callback) => {
 // ...
 //
 const logger = {};
-logger.log = makeLogger("log", { formatter });
-logger.error = makeLogger("error", { formatter, extend: [logger.log] });
-logger.noob = makeLogger("noob");
+logger.log = new FilestreamLogger("log", { formatter });
+logger.error = new FilestreamLogger("error", { formatter, extend: [logger.log] });
+logger.noob = new FilestreamLogger("noob");
 logger.noob.destroy();
 logger.noob("never gonna happen");
 logger.noob.onReady(() => console.log(`really never gonna happen, 
@@ -198,25 +192,36 @@ logger.log.destroy(); // the next error will not log to logger.log
 logger.error("FAILED", "/v1/someapi/mongol/4", "find errors in " + logger.error.filepath, "monkey!");
 //
 //
-// { log: [Function: log], error: [Function: error] }
-// 2021-04-06T21:28:55.389+0200       GET       /v1/someapi/mongol/1     spider    monkey
-// 2021-04-06T21:28:55.390+0200       CLOSED    /v1/someapi/mongol/1     spider    monkey
-// 2021-04-06T21:28:55.390+0200       FAILED    /v1/someapi/mongol/1     find errors in loggers\error\2021-04-06.log       monkey!
-// 2021-04-06T21:28:55.390+0200       FAILED    /v1/someapi/mongol/2     find errors in loggers\error\2021-04-06.log       monkey!
-// 2021-04-06T21:28:55.391+0200       FAILED    /v1/someapi/mongol/3     find errors in loggers\error\monkey.log      monkey!
-// 2021-04-06T21:28:55.391+0200       GET       /v1/someapi/mongol/2     spider    monkey
-// 2021-04-06T21:28:55.392+0200       CLOSED    /v1/someapi/mongol/2     spider    monkey
-// 2021-04-06T21:28:55.392+0200       FAILED    /v1/someapi/mongol/4     find errors in loggers\error\monkey.log      monkey!
+// CONSOLE OUTPUT:
+// {
+//   log: [Function (anonymous)] FilestreamLogger {
+//     formatter: [Function: formatter]
+//   },
+//   error: [Function (anonymous)] FilestreamLogger {
+//     formatter: [Function: formatter]
+//   }
+// }
+// 2021-04-15T12:58:56.598+0200       GET       /v1/someapi/mongol/1     spider    monkey
+// 2021-04-15T12:58:56.598+0200       CLOSED    /v1/someapi/mongol/1     spider    monkey
+// 2021-04-15T12:58:56.598+0200       FAILED    /v1/someapi/mongol/1     find errors in loggers\error\2021-04-15.log       monkey!
+// 2021-04-15T12:58:56.599+0200       FAILED    /v1/someapi/mongol/2     find errors in loggers\error\2021-04-15.log       monkey!
+// 2021-04-15T12:58:56.599+0200       FAILED    /v1/someapi/mongol/3     find errors in loggers\error\monkey.log      monkey!
+// 2021-04-15T12:58:56.599+0200       GET       /v1/someapi/mongol/2     spider    monkey
+// 2021-04-15T12:58:56.600+0200       CLOSED    /v1/someapi/mongol/2     spider    monkey
+// 2021-04-15T12:58:56.600+0200       FAILED    /v1/someapi/mongol/4     find errors in loggers\error\monkey.log      monkey!
+// destroyed loggers\noob
+// destroyed loggers\log
 //
 //
-// 1st OUTPUT: /loggers/log/2020-08-30.log
-// 2nd OUTPUT: /loggers/log/2020-08-30.log
-// 3rd OUTPUT: /loggers/error/2020-08-30.log + OUTPUT: /loggers/log/2020-08-30.log
-// 4th OUTPUT: /loggers/error/2020-08-30.log + OUTPUT: /loggers/log/2020-08-30.log
+// OUTPUT TO WHICH LOG-FILES:
+// 1st OUTPUT: /loggers/log/2021-04-15.log
+// 2nd OUTPUT: /loggers/log/2021-04-15.log
+// 3rd OUTPUT: /loggers/error/2021-04-15.log + OUTPUT: /loggers/log/2021-04-15.log
+// 4th OUTPUT: /loggers/error/2021-04-15.log + OUTPUT: /loggers/log/2021-04-15.log
 // 5th OUTPUT: /loggers/error/monkey.log + OUTPUT: /loggers/log/test.log
 // 6th OUTPUT: /loggers/log/test.log
 // 7th OUTPUT: /loggers/log/test.log
-// 8th OUTPUT /loggers/error/monkey.log (logger.log has been destroyed)
+// 8th OUTPUT: /loggers/error/monkey.log
 //
 // ...
 //
@@ -230,5 +235,11 @@ process.on("SIGINT", () => {
 	};
 	for (const type in logger)
 		logger[type].destroy(awaitExit, i++);
+	// CONSOLE OUTPUT:
+	// 2021-04-15T13:01:37.152+0200       Node JS is now shutting down due to pressing ctrl + c
+	// destroyed loggers\error
+	//
+	// OUTPUT TO WHICH LOG-FILES:
+	// OUTPUT: /loggers/error/monkey.log
 });
 ```
