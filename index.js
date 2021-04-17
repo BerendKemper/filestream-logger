@@ -37,7 +37,6 @@ const oneBit = Buffer.allocUnsafe(1);
 const crossLoggers = {};
 class FilestreamLogger extends ExtensibleFunction {
 	#queue = new CallbackQueue();
-	#hasNotOpened = true;
 	#extending;
 	#filepath;
 	#dirpath;
