@@ -33,6 +33,7 @@ const getCrossLoggers = filestreamLogger => {
 		throw new TypeError(`Can only extend FilestreamLoggers, found ${typeof filestreamLogger}`);
 	return crossLoggers[filestreamLogger.dirpath];
 };
+const oneBit = Buffer.allocUnsafe(1);
 const crossLoggers = {};
 class FilestreamLogger extends ExtensibleFunction {
 	#queue = new CallbackQueue();
@@ -127,7 +128,7 @@ class FilestreamLogger extends ExtensibleFunction {
 		this.#queue.push(callback => {
 			fs.open(newFilepath, "a+", 0o666, (error, fd) => {
 				if (error) throw error;
-				fs.read(this.#fd, Buffer.alloc(1), 0, 1, 0, (error, bytesRead, buffer) => {
+				fs.read(this.#fd, oneBit, 0, 1, 0, (error, bytesRead, buffer) => {
 					fs.close(this.#fd, () => {
 						this.#fd = fd;
 						bytesRead === 0 ? fs.unlink(oldFilepath, callback) : callback();
@@ -145,7 +146,7 @@ class FilestreamLogger extends ExtensibleFunction {
 	 */
 	destroy(callback = dirpath => console.log("destroyed", dirpath)) {
 		this.#queue.push(() => {
-			fs.read(this.#fd, Buffer.alloc(1), 0, 1, 0, (error, bytesRead, buffer) => {
+			fs.read(this.#fd, oneBit, 0, 1, 0, (error, bytesRead, buffer) => {
 				fs.close(this.#fd, () => {
 					this.#x.destroy(this.#dirpath);
 					this.#x = null;
