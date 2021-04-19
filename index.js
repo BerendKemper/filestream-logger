@@ -10,8 +10,9 @@ class ExtensibleFunction extends Function {
 };
 class CrossLogger {
 	extendedFrom = [];
-	constructor(dirpath, log) {
-		crossLoggers[dirpath] = this;
+	constructor(filestreamLogger, log) {
+		crossLoggers[filestreamLogger.dirpath] = this;
+		this.filestreamLogger = filestreamLogger;
 		this.log = log;
 	};
 	extend(xList) {
@@ -74,7 +75,7 @@ class FilestreamLogger extends ExtensibleFunction {
 		if (crossLoggers[this.#dirpath])
 			throw new Error(`A logger at dirpath "${this.#dirpath}" already exists`);
 		this.#filepath = path.join(this.#dirpath, options.name || yyyymmdd() + ".log");
-		this.#x = crossLoggers[this.#dirpath] = new CrossLogger(this.#dirpath, lineBuffer => this.#xWrite(lineBuffer));
+		this.#x = crossLoggers[this.#dirpath] = new CrossLogger(this, lineBuffer => this.#xWrite(lineBuffer));
 		Array.isArray(options.extend) ? this.#extend(options.extend) : this.#extending = [];
 		if (typeof options.formatter === "function")
 			this.formatter = options.formatter;
@@ -167,6 +168,18 @@ class FilestreamLogger extends ExtensibleFunction {
 	 */
 	get filepath() {
 		return this.#filepath;
+	};
+	static destroyAll(callback = () => console.log("closed all fileOperators")) {
+		if (typeof callback !== "function")
+			throw new TypeError("callback is not a function");
+		const awaitCounter = dirpath => {
+			console.log("destroyed", dirpath);
+			if (--counter === 0)
+				callback();
+		};
+		let counter = 0;
+		for (const dirpath in crossLoggers)
+			crossLoggers[dirpath].filestreamLogger.destroy(awaitCounter, counter++);
 	};
 };
 module.exports = FilestreamLogger;
