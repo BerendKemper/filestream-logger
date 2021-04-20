@@ -17,7 +17,7 @@ class CrossLogger {
 	};
 	extend(xList) {
 		if (this.extendedFrom.indexOf(xList) > -1)
-			throw new Error("Cannot extend a FilestreamLogger more than once");
+			throw new Error("Cannot extend a filestreamLogger more than once");
 		this.extendedFrom.push(xList);
 		return this.log;
 	};
@@ -25,13 +25,14 @@ class CrossLogger {
 		for (const xList of this.extendedFrom)
 			xList.splice(xList.indexOf(this.log), 1);
 		delete (crossLoggers[dirpath]);
+		this.filestreamLogger = null;
 		this.log = null;
 		return this;
 	};
 };
 const getCrossLoggers = filestreamLogger => {
 	if (!crossLoggers[filestreamLogger.dirpath])
-		throw new TypeError(`Can only extend FilestreamLoggers, found ${typeof filestreamLogger}`);
+		throw new TypeError(`Can only extend filestreamLoggers, found ${typeof filestreamLogger}`);
 	return crossLoggers[filestreamLogger.dirpath];
 };
 const oneBit = Buffer.allocUnsafe(1);
@@ -80,7 +81,7 @@ class FilestreamLogger extends ExtensibleFunction {
 		if (typeof options.formatter === "function")
 			this.formatter = options.formatter;
 		this.#queue.push(callback => fs.mkdir(this.#dirpath, { recursive: true }, callback));
-		((filepath) => {
+		(filepath => {
 			this.#queue.push(callback => {
 				fs.open(filepath, "a+", 0o666, (err, fd) => {
 					if (err) throw err;
