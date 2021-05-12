@@ -41,7 +41,7 @@ const FilestreamLogger = require("filestream-logger");
 						<summary>
 							<code>data</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>
 						</summary>
-						If the <code>formatter</code> cannot format objects into a formatted string, it is recommended  that the <code>data</code> should contain only <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#primitive_values">&lt;primitive values&gt;</a>. This does not apply if a developer wrote a formatter that can format objects into formatted string such as console.log can. 
+						If the <code>formatter</code> cannot format objects into a formatted string, it is recommended  that the <code>data</code> should contain only <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#primitive_values">&lt;primitive values&gt;</a>. This does not apply if a developer wrote a formatter that can format objects into formatted string such as console.log can.
 					</details>
 					<details>
 						<summary>
@@ -56,7 +56,7 @@ const FilestreamLogger = require("filestream-logger");
 				<summary>
 					<code>extend</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>
 				</summary>
-				The <code>extend</code> option must contain <code>filestreamLoggers</code>. The created <code>filestreamLogger</code> stores an <code>xLog</code> from every <code>filestreamLogger</code> out of <code>extend</code>. Whenever this <code>filestreamLogger</code> is invoked to log data, the formatted string is also passed over to all <code>xLogs</code>. Checkout the examples to see how an logger.error is extended with a logger.log. 
+				The <code>extend</code> option must contain <code>filestreamLoggers</code>. The created <code>filestreamLogger</code> stores the <code>filestreamLoggers</code> from <code>extend</code> internally. Whenever this <code>filestreamLogger</code> is invoked to log data, the formatted text is also passed over to all extended <code>filestreamLoggers</code>. Checkout the examples to see how an logger.error is extended with a logger.log.
 			</details>
 		</ul>
 	</details>
@@ -67,7 +67,7 @@ const FilestreamLogger = require("filestream-logger");
 		<summary>
 			<code>...data</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>
 		</summary>
-		The <code>data</code> catches all parameters passed over into a single array, just like console.log(...data). The <code>data</code> is passed over as a whole array (and not spread out to avoid an unnecessary loop) to <code>formatter</code>.
+		The <code>data</code> catches all parameters passed over into a single array, just like <a href="https://developer.mozilla.org/en-US/docs/Web/API/Console/log">console.log(...data)</a>. The <code>data</code> is passed over as a whole array to <code>formatter</code>.
 	</details>
 </ul>
 The <code>filestreamLogger</code> instance is the logging <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">Function</a> and when invoked it immediately invokes <code>formatter</code> followed by writing the formatted string to the log-file.
@@ -80,7 +80,7 @@ The <code>filestreamLogger</code> instance is the logging <a href="https://devel
 		If <code>name</code> is set to the name it already had nothing will happen.
 	</details>
 </ul>
-This method immediately updates the <code>name</code> and <code>filepath</code> and when all previously queued functions have finished it <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_open_path_flags_mode_callback">opens</a> a new fd to the new <code>filepath</code>, <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_read_fd_buffer_offset_length_position_callback">reads</a> one bit from the old <code>filepath</code>'s fd to see if it the log-file has content, <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_close_fd_callback">closes</a> the old <code>filepath</code>'s fd and and <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_unlink_path_callback">deletes</a> the old log-file if it has no content.
+This method immediately updates the <code>name</code> and <code>filepath</code> and when all previously queued functions have finished it <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_open_path_flags_mode_callback">opens</a> a new <code>fd</code> to the new <code>filepath</code>, checks the size of the old <code>filepath</code> through <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_fstat_fd_options_callback">fstat</a> to see if it the log-file has content, <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_close_fd_callback">closes</a> the old <code>filepath</code>'s and <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_unlink_path_callback">deletes</a> the old log-file if it has no content.
 <h3><code>filestreamLogger.onReady(callback)</code></h3>
 <ul>
 	<details>
@@ -95,9 +95,9 @@ This method invokes <code>callback</code> when all previously queued functions h
 <ul>
 	<details>
 		<summary>
-			<code>filestreamLogger</code> &lt;FilestreamLogger&gt;
+			<code>filestreamLogger</code> &lt;FilestreamLogger&gt; | <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>
 		</summary>
-		If <code>filestreamLogger</code> is not a <code>FilestreamLogger</code> throws a TypeError.
+		If <code>filestreamLogger</code> is an Array checks if the values of the Array are <code>FilestreamLogger</code>, otherwise checks if <code>filestreamLogger</code> is a <code>FilestreamLogger</code> and throws a TypeError if not a <code>FilestreamLogger</code>.
 	</details>
 </ul>
 This method allows additionaly extending a <code>filestreamLogger</code> after being created. It finds the <code>filestreamLogger</code>'s <code>xLog</code> function and stored it. Whenever the <code>filestreamLogger</code> is invoked to log data, the formatted string is also passed over to all <code>xLogs</code>.
@@ -118,7 +118,7 @@ This method allows additionaly extending a <code>filestreamLogger</code> after b
 		If <code>callback</code> is not a function throws a TypeError. Since the logger is destroyed the internal callback queue is cleared and therefore a <code>callback</code> parameter is usefull.
 	</details>
 </ul>
-This method <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_read_fd_buffer_offset_length_position_callback">reads</a> one bit from the <code>filepath</code>'s fd to see if it the log-file has content, <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_close_fd_callback">closes</a> the <code>filepath</code>'s fd, <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_unlink_path_callback">deletes</a> the log-file if it has no content, removes the <code>filestreamLogger</code>'s cross-log function from all from all <code>filestreamLoggers</code> and clears the <a href="https://www.npmjs.com/package/ca11back-queue">callback-queue</a> to prevent function scopes from within the callbackQueue from referring to the <code>filestreamLogger</code> so that everything can be garbage collected. Check out the example below where logger.noob get destroyed and entirely garbage collected.
+This method checks the size of the log-file with <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_fstat_fd_options_callback">fstat</a> to see if it the log-file has content, <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_close_fd_callback">closes</a> the log-file's fd, deletes with <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_unlink_path_callback">unlink</a> the log-file if it has no content, deletes with <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_rmdir_path_options_callback">rmdir</a> the directory if there were no log-files in it, removes this <code>filestreamLogger</code> from any other <code>filestreamLogger</code>'s extending and sets any internal properties that have Object values to <code>null</code> so that everything can be garbage collected. Check out the example below where logger.noob get destroyed and entirely garbage collected.
 <h3><code>filestreamLogger.dirpath</code></h3>
 Readable property <code>dirpath</code> is created by <a href="https://nodejs.org/dist/latest-v14.x/docs/api/path.html#path_path_join_paths">path.join</a>(<code>dir</code>, <code>type</code>). This property never changes and it used to get a <code>filestreamLogger</code>'s <code>xLog</code>.
 <h3><code>filestreamLogger.filepath</code></h3>
@@ -150,9 +150,10 @@ const logger = {};
 logger.log = new FilestreamLogger("log", { formatter });
 logger.error = new FilestreamLogger("error", { formatter, extend: [logger.log] });
 logger.noob = new FilestreamLogger("noob");
+logger.noob.extend([logger.log, logger.error]);
 logger.noob.destroy();
 logger.noob("never gonna happen");
-logger.noob.onReady(() => console.log(`really never gonna happen, 
+logger.noob.onReady(() => console.log(`really never gonna happen,
 all callbacks and logger.noob gets GC'd on the next line`));
 delete (logger.noob);
 //

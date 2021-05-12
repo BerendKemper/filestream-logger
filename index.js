@@ -1,100 +1,210 @@
 "use strict";
-const fs = require("fs");
+const { mkdir, open, fstat, writeBuffer, close, unlink, readdir, rmdir, FSReqCallback } = process.binding('fs');
+const { fs: { S_IFMT, S_IFREG } } = process.binding('constants');
+const O_APPENDPLUS = function loadAppendPlus() {
+	const { O_APPEND, O_CREAT } = require("fs").constants;
+	return O_APPEND | O_CREAT;
+}();
 const path = require("path");
 const CallbackQueue = require("ca11back-queue");
 const yyyymmdd = require("filestream-logger/lib/yyyymmdd");
+
+const privFilestreamLoggers = {};
+const getPrivateFilestreamLogger = filestreamLogger => {
+	if (!privFilestreamLoggers[filestreamLogger.dirpath])
+		throw new TypeError(`Can only extend filestreamLoggers, found ${typeof filestreamLogger}`);
+	return privFilestreamLoggers[filestreamLogger.dirpath];
+};
+
+function makeDir(next) {
+	const req = new FSReqCallback();
+	req.oncomplete = next;
+	mkdir(path.toNamespacedPath(this.dirpath), 0o777, true, req)
+};
+function openFileInitial(next, filepath) {
+	const req = new FSReqCallback();
+	req.oncomplete = openFileInitialAfterOpen;
+	req.logger = this;
+	req.next = next;
+	open(filepath, O_APPENDPLUS, 0o666, req);
+};
+function openFileInitialAfterOpen(error, fd) {
+	if (error) throw error;
+	this.next(this.logger.fd = fd);
+};
+function queueLogBuffer(next, lineBuffer) {
+	const req = new FSReqCallback();
+	req.oncomplete = logBufferWrite;
+	req.next = next;
+	writeBuffer(this.fd, lineBuffer, 0, lineBuffer.length, null, req);
+};
+function logBufferWrite(error, bytesWritten) {
+	if (error) throw error;
+	this.next();
+};
+class PrivateFilestreamLogger {
+	extending = []
+	extendedFrom = [];
+	queue = new CallbackQueue(this);
+	constructor(filestreamLogger, dirpath, options) {
+		this.public = filestreamLogger;
+		this.dirpath = dirpath;
+		this.filepath = path.join(dirpath, options.name || yyyymmdd() + ".log");
+		if (Array.isArray(options.extend) && options.extend.length > 0)
+			this.extend(options.extend);
+		if (typeof options.formatter === "function")
+			this.public.formatter = options.formatter;
+		this.queue.push(makeDir);
+		this.queue.push(openFileInitial, this.filepath);
+	};
+	write(lineBuffer) {
+		this.queue.push(queueLogBuffer, lineBuffer);
+		for (const xLogger of this.extending)
+			xLogger.xWrite(lineBuffer);
+	};
+	xWrite(lineBuffer) {
+		this.queue.push(queueLogBuffer, lineBuffer);
+	};
+	extend(filestreamLoggers) {
+		for (let filestreamLogger of filestreamLoggers) {
+			filestreamLogger = getPrivateFilestreamLogger(filestreamLogger);
+			if (filestreamLogger.extendedFrom.indexOf(this) > -1) throw new Error("Cannot extend a filestreamLogger more than once");
+			filestreamLogger.extendedFrom.push(this);
+			this.extending.push(filestreamLogger);
+		}
+	};
+	destroy(context) {
+		const { removePrivate, callback } = context;
+		removePrivate.call(this.public);
+		this.queue.destroy();
+		this.queue = null;
+		this.public.formatter = null;
+		this.public = null;
+		for (const xLogger of this.extending) {
+			this.extending.splice(this.extending.indexOf(xLogger), 1);
+			xLogger.extendedFrom.splice(xLogger.extendedFrom.indexOf(this), 1);
+		}
+		for (const xLogger of this.extendedFrom) {
+			xLogger.extending.splice(xLogger.extending.indexOf(this), 1);
+			this.extendedFrom.splice(this.extendedFrom.indexOf(xLogger), 1);
+		}
+		delete (privFilestreamLoggers[this.dirpath]);
+		callback(this.dirpath);
+	};
+};
 class ExtensibleFunction extends Function {
 	constructor(f) {
 		return Object.setPrototypeOf(f, new.target.prototype);
 	};
 };
-class CrossLogger {
-	extendedFrom = [];
-	constructor(filestreamLogger, log) {
-		crossLoggers[filestreamLogger.dirpath] = this;
-		this.filestreamLogger = filestreamLogger;
-		this.log = log;
-	};
-	extend(xList) {
-		if (this.extendedFrom.indexOf(xList) > -1)
-			throw new Error("Cannot extend a filestreamLogger more than once");
-		this.extendedFrom.push(xList);
-		return this.log;
-	};
-	destroy(dirpath) {
-		for (const xList of this.extendedFrom)
-			xList.splice(xList.indexOf(this.log), 1);
-		delete (crossLoggers[dirpath]);
-		this.filestreamLogger = null;
-		this.log = null;
-		return this;
-	};
+function queueCallback(next, callback) {
+	callback();
+	next();
 };
-const getCrossLoggers = filestreamLogger => {
-	if (!crossLoggers[filestreamLogger.dirpath])
-		throw new TypeError(`Can only extend filestreamLoggers, found ${typeof filestreamLogger}`);
-	return crossLoggers[filestreamLogger.dirpath];
+function queueSetName(next, context) {
+	context.next = next;
+	context.logger = this
+	const req = new FSReqCallback();
+	req.oncomplete = destroyAfterOpen;
+	req.context = context;
+	context.whichAfterClose = setNameAfterClose;
+	open(context.newFilepath, O_APPENDPLUS, 0o666, req);
 };
-const oneBit = Buffer.allocUnsafe(1);
-const crossLoggers = {};
+function queueDestroy(next, context) {
+	context.logger = this
+	context.filepath = this.filepath;
+	const req = new FSReqCallback();
+	req.oncomplete = destroyAfterStat;
+	req.context = context;
+	fstat(req.context.logger.fd, false, req);
+};
+function destroyAfterOpen(error, fd) {
+	if (error) throw error;
+	const req = new FSReqCallback();
+	req.oncomplete = destroyAfterStat;
+	req.context = this.context;
+	req.context.fd = fd;
+	fstat(req.context.logger.fd, false, req);
+};
+function destroyAfterStat(error, stats) {
+	if (error) throw error;
+	const req = new FSReqCallback();
+	req.oncomplete = this.context.whichAfterClose;
+	req.context = this.context;
+	req.context.bytes = (stats[1] & S_IFMT) === S_IFREG ? stats[8] : 0;
+	close(req.context.logger.fd, req);
+};
+function destroyafterClose(error) {
+	if (error) throw error;
+	if (this.context.bytes === 0) {
+		const req = new FSReqCallback();
+		req.oncomplete = destroyAfterUnlink;
+		req.context = this.context;
+		req.context.namespacePath = path.toNamespacedPath(this.context.filepath)
+		return unlink(req.context.namespacePath, req);
+	}
+	this.context.logger.destroy(this.context);
+};
+function destroyAfterUnlink(error) {
+	if (error) throw error;
+	const req = new FSReqCallback();
+	req.oncomplete = destroyAfterReaddir;
+	req.context = this.context;
+	req.context.dirpath = path.toNamespacedPath(req.context.logger.dirpath);
+	readdir(req.context.dirpath, "utf8", false, req);
+};
+function destroyAfterReaddir(error, files) {
+	if (error) throw error;
+	if (files.length === 0) {
+		const req = new FSReqCallback();
+		req.oncomplete = destroyAfterRmdir;
+		req.context = this.context;
+		return rmdir(req.context.dirpath, req);
+	}
+	this.context.logger.destroy(this.context);
+};
+function destroyAfterRmdir(error) {
+	if (error) throw error;
+	this.context.logger.destroy(this.context);
+};
+function setNameAfterClose(error) {
+	if (error) throw error;
+	this.context.logger.fd = this.context.fd;
+	if (this.context.bytes === 0) {
+		const req = new FSReqCallback();
+		req.oncomplete = this.context.next;
+		return unlink(path.toNamespacedPath(this.context.filepath), req);
+	}
+	this.context.next();
+};
 class FilestreamLogger extends ExtensibleFunction {
-	#queue = new CallbackQueue();
-	#extending;
-	#filepath;
-	#dirpath;
-	#fd;
-	#x;
-	#extend(loggers) {
-		let ix = -1;
-		this.#extending = new Array(loggers.length);
-		while (++ix < loggers.length)
-			this.#extending[ix] = getCrossLoggers(loggers[ix]).extend(this.#extending);
-	};
-	#write(lineBuffer) {
-		this.#queue.push(callback => fs.write(this.#fd, lineBuffer, callback));
-		for (const xLog of this.#extending)
-			xLog(lineBuffer);
-	};
-	#xWrite(lineBuffer) {
-		this.#queue.push(callback => fs.write(this.#fd, lineBuffer, callback));
+	#private;
+	#constructMore(type, options) {
+		const dirpath = path.join(options.dir || "loggers", type);
+		if (privFilestreamLoggers[dirpath])
+			throw new Error(`A logger at dirpath "${dirpath}" already exists`);
+		this.#private = privFilestreamLoggers[dirpath] = new PrivateFilestreamLogger(this, dirpath, options);
 	};
 	/**
-	 * Makes a log function. The log function invokes the formatter then streams the
-	 * formatted string the log file. Extended log functions will stream it's formatted
-	 * data to all x-FilestreamLoggers. Write your own formatter, it's a freedom.
+	 * The fileStreamLogger is a log function and a class instance at the same time. The
+	 * fileStreamLogger opens files for appending. Logging with fileStreamLogger first
+	 * formats data into a string and writes a buffer from that string to the file and
+	 * extended fileStreamLoggers.
 	 * @param {string} type
-	 * @param {Object} options 
+	 * @param {Object} options
 	 * @param {string} options.dir
 	 * @param {string} options.name
-	 * @param {Function} options.formatter 
+	 * @param {Function} options.formatter
 	 * @param {Array} options.extend
-	 * @returns an FilestreamLogger instance is a function
 	 **/
 	constructor(type, options = {}) {
-		super((...data) => this.formatter(data, line => this.#write(Buffer.from(line + "\n", "utf8"))));
-		this.#dirpath = path.join(options.dir || "loggers", type);
-		if (crossLoggers[this.#dirpath])
-			throw new Error(`A logger at dirpath "${this.#dirpath}" already exists`);
-		this.#filepath = path.join(this.#dirpath, options.name || yyyymmdd() + ".log");
-		this.#x = crossLoggers[this.#dirpath] = new CrossLogger(this, lineBuffer => this.#xWrite(lineBuffer));
-		Array.isArray(options.extend) ? this.#extend(options.extend) : this.#extending = [];
-		if (typeof options.formatter === "function")
-			this.formatter = options.formatter;
-		this.#queue.push(callback => fs.mkdir(this.#dirpath, { recursive: true }, callback));
-		(filepath => {
-			this.#queue.push(callback => {
-				fs.open(filepath, "a+", 0o666, (err, fd) => {
-					if (err) throw err;
-					this.#fd = fd;
-					callback();
-				});
-			});
-		})(this.#filepath);
+		super((...data) => this.formatter(data, line => this.#private.write(Buffer.from(line + "\n", "utf8"))));
+		this.#constructMore(type, options);
 	};
 	/**
-	 * aapje
-	 * @param {Array} data 
-	 * @param {Function} callback 
+	 * The format method this fileStreamLoggers uses to serialize data.
+	 * @param {Array} data
+	 * @param {Function} callback
 	 */
 	formatter(data, callback) {
 		callback(data.join(" "));
@@ -102,85 +212,80 @@ class FilestreamLogger extends ExtensibleFunction {
 	/**
 	 * This method pushes the callback in a queue, the callback is invoked only when
 	 * all previous queued functions have finished.
-	 * @param {Function} callback 
+	 * @param {Function} callback
 	 */
 	onReady(callback) {
 		if (typeof callback !== "function")
 			throw new TypeError("callback must be a function");
-		this.#queue.push(_callback => _callback(callback()));
+		this.#private.queue.push(queueCallback, callback);
 		return this;
 	};
 	/**
-	 * Extend a filestreamLoggers after it's been created.
-	 * @param {FilestreamLogger} filestreamLogger 
+	 * Extend more filestreamLoggers (even after it's been created).
+	 * @param {FilestreamLogger} filestreamLogger
 	 */
-	extend(filestreamLogger) {
-		this.#extending.push(getCrossLoggers(filestreamLogger).extend(this.#extending));
+	extend(filestreamLoggers) {
+		Array.isArray(filestreamLoggers)
+			? this.#private.extend(filestreamLoggers)
+			: this.#private.extend([filestreamLoggers]);
 		return this;
 	};
 	/**
-	 * This method creates a new file to which the logger logs to and it updates the
-	 * readable property filepath.
-	 * @param {String} name 
+	 * This method creates a new file to which the fileStreamLoggers logs to and it
+	 * updates the readable property filepath.
+	 * @param {String} name
 	 */
 	setName(name) {
-		const oldFilepath = this.#filepath;
-		const newFilepath = this.#filepath = path.join(this.#dirpath, name + ".log");
-		this.#queue.push(callback => {
-			fs.open(newFilepath, "a+", 0o666, (error, fd) => {
-				if (error) throw error;
-				fs.read(this.#fd, oneBit, 0, 1, 0, (error, bytesRead, buffer) => {
-					fs.close(this.#fd, () => {
-						this.#fd = fd;
-						bytesRead === 0 ? fs.unlink(oldFilepath, callback) : callback();
-					});
-				});
-			});
+		const filepath = path.toNamespacedPath(this.#private.filepath);
+		const newFilepath = this.#private.filepath = path.join(this.#private.dirpath, name + ".log");
+		this.#private.queue.push(queueSetName, {
+			filepath,
+			newFilepath: path.toNamespacedPath(newFilepath),
+			whichAfterClose: setNameAfterClose
 		});
 		return this;
 	};
 	/**
-	 * Ends the writestream, destroys the log file at the writestream's filepath if it has
-	 * no content, removes this logger's cross-log function from all from all loggers
-	 * and clears the callback-queue.
-	 * @param {Function} callback 
+	 * Closes the file descriptor, destroys the log file at the fileStreamLogger's filepath if
+	 * it has no content, removes the directory if there were no (log-)files and removes
+	 * this fileStreamLogger from all fileStreamLoggers that were extended from this
+	 * fileStreamLogger.
+	 * @param {Function} callback
 	 */
 	destroy(callback = dirpath => console.log("destroyed", dirpath)) {
-		this.#queue.push(() => {
-			fs.read(this.#fd, oneBit, 0, 1, 0, (error, bytesRead, buffer) => {
-				fs.close(this.#fd, () => {
-					this.#x.destroy(this.#dirpath);
-					this.#x = null;
-					this.#queue.clear();
-					bytesRead === 0 ? fs.unlink(this.#filepath, () => callback(this.#dirpath)) : callback(this.#dirpath);
-				});
-			});
+		this.#private.queue.push(queueDestroy, {
+			filepath: path.toNamespacedPath(this.#private.filepath),
+			whichAfterClose: destroyafterClose,
+			removePrivate: this.#removePrivate,
+			callback,
 		});
 	};
+	#removePrivate() {
+		this.#private = null;
+	};
 	/**
-	 * Readable property of the dirpath is used internally to store the xLog which allows
-	 * extending loggers.
+	 * Readable property of the dirpath is used internally to store the fileStreamLogger
+	 * which allows extending fileStreamLoggers.
 	 */
 	get dirpath() {
-		return this.#dirpath;
+		return this.#private.dirpath;
 	};
 	/**
 	 * Readable property of the path from the file that is currently being logged to.
 	 */
 	get filepath() {
-		return this.#filepath;
+		return this.#private.filepath;
 	};
 	static destroyAll(callback = () => console.log("closed all fileOperators")) {
-		if (typeof callback !== "function")
-			throw new TypeError("callback is not a function");
+		if (typeof callback !== "function") throw new TypeError("callback is not a function");
 		const awaitCounter = dirpath => {
 			console.log("destroyed", dirpath);
 			if (--counter === 0)
 				callback();
 		};
 		let counter = 0;
-		for (const dirpath in crossLoggers)
-			crossLoggers[dirpath].filestreamLogger.destroy(awaitCounter, counter++);
+		for (const dirpath in privFilestreamLoggers)
+			privFilestreamLoggers[dirpath].public.destroy(awaitCounter, counter++);
 	};
 };
 module.exports = FilestreamLogger;
