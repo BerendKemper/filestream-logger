@@ -184,7 +184,7 @@ class FilestreamLogger extends ExtensibleFunction {
 		this.#private = privFilestreamLoggers[dirpath] = new PrivateFilestreamLogger(this, dirpath, options);
 	};
 	#lineToBuffer(line) {
-		this.#private.write(Buffer.from(line + "\n", "utf8"))
+
 	};
 	/**
 	 * The fileStreamLogger is a log function and a class instance at the same time. The
@@ -199,7 +199,7 @@ class FilestreamLogger extends ExtensibleFunction {
 	 * @param {Array} options.extend
 	 **/
 	constructor(type, options = {}) {
-		super((...data) => this.formatter(data, this.#lineToBuffer));
+		super((...data) => this.formatter(data, line => this.#private.write(Buffer.from(line + "\n", "utf8"))));
 		this.#constructMore(type, options);
 	};
 	/**
