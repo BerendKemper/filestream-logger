@@ -199,7 +199,7 @@ class FilestreamLogger extends ExtensibleFunction {
 	 * @param {Array} options.extend
 	 **/
 	constructor(type, options = {}) {
-		super((...data) => this.formatter(data, this.#bufferToLine));
+		super((...data) => this.formatter(data, this.#lineToBuffer));
 		this.#constructMore(type, options);
 	};
 	/**
