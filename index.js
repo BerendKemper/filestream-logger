@@ -183,9 +183,6 @@ class FilestreamLogger extends ExtensibleFunction {
 			throw new Error(`A logger at dirpath "${dirpath}" already exists`);
 		this.#private = privFilestreamLoggers[dirpath] = new PrivateFilestreamLogger(this, dirpath, options);
 	};
-	#lineToBuffer(line) {
-
-	};
 	/**
 	 * The fileStreamLogger is a log function and a class instance at the same time. The
 	 * fileStreamLogger opens files for appending. Logging with fileStreamLogger first
