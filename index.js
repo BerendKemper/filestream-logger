@@ -80,14 +80,12 @@ class PrivateFilestreamLogger {
 		this.queue = null;
 		this.public.formatter = null;
 		this.public = null;
-		for (const xLogger of this.extending) {
-			this.extending.splice(this.extending.indexOf(xLogger), 1);
+		for (const xLogger of this.extending)
 			xLogger.extendedFrom.splice(xLogger.extendedFrom.indexOf(this), 1);
-		}
-		for (const xLogger of this.extendedFrom) {
+		for (const xLogger of this.extendedFrom)
 			xLogger.extending.splice(xLogger.extending.indexOf(this), 1);
-			this.extendedFrom.splice(this.extendedFrom.indexOf(xLogger), 1);
-		}
+		this.extending = null;
+		this.extendedFrom = null;
 		delete (privFilestreamLoggers[this.dirpath]);
 		callback(this.dirpath);
 	};
@@ -185,6 +183,9 @@ class FilestreamLogger extends ExtensibleFunction {
 			throw new Error(`A logger at dirpath "${dirpath}" already exists`);
 		this.#private = privFilestreamLoggers[dirpath] = new PrivateFilestreamLogger(this, dirpath, options);
 	};
+	#lineToBuffer(line) {
+		this.#private.write(Buffer.from(line + "\n", "utf8"))
+	};
 	/**
 	 * The fileStreamLogger is a log function and a class instance at the same time. The
 	 * fileStreamLogger opens files for appending. Logging with fileStreamLogger first
@@ -198,7 +199,7 @@ class FilestreamLogger extends ExtensibleFunction {
 	 * @param {Array} options.extend
 	 **/
 	constructor(type, options = {}) {
-		super((...data) => this.formatter(data, line => this.#private.write(Buffer.from(line + "\n", "utf8"))));
+		super((...data) => this.formatter(data, this.#bufferToLine));
 		this.#constructMore(type, options);
 	};
 	/**
