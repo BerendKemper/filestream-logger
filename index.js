@@ -1,7 +1,7 @@
 "use strict";
 const { mkdir, open, fstat, writeBuffer, close, unlink, readdir, rmdir, FSReqCallback } = process.binding('fs');
-const { fs: { S_IFMT, S_IFREG } } = process.binding('constants');
-const O_APPENDPLUS = function loadAppendPlus() {
+const { S_IFMT, S_IFREG } = require("fs").constants;
+const O_APPENDCREAT = function loadAppendCreat() {
 	const { O_APPEND, O_CREAT } = require("fs").constants;
 	return O_APPEND | O_CREAT;
 }();
@@ -26,7 +26,7 @@ function openFileInitial(next, filepath) {
 	req.oncomplete = openFileInitialAfterOpen;
 	req.logger = this;
 	req.next = next;
-	open(filepath, O_APPENDPLUS, 0o666, req);
+	open(filepath, O_APPENDCREAT, 0o666, req);
 };
 function openFileInitialAfterOpen(error, fd) {
 	if (error) throw error;
@@ -106,7 +106,7 @@ function queueSetName(next, context) {
 	req.oncomplete = destroyAfterOpen;
 	req.context = context;
 	context.whichAfterClose = setNameAfterClose;
-	open(context.newFilepath, O_APPENDPLUS, 0o666, req);
+	open(context.newFilepath, O_APPENDCREAT, 0o666, req);
 };
 function queueDestroy(next, context) {
 	context.logger = this
