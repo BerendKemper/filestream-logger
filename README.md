@@ -229,13 +229,7 @@ logger.error("FAILED", "/v1/someapi/mongol/4", "find errors in " + logger.error.
 process.on("SIGINT", () => {
 	logger.error("Node JS is now shutting down due to pressing ctrl + c");
 	// finish up all logs before exiting process
-	let i = 0;
-	const awaitExit = dirpath => {
-		console.log("destroyed", dirpath);
-		if (--i === 0) process.exit();
-	};
-	for (const type in logger)
-		logger[type].destroy(awaitExit, i++);
+	FilestreamLogger.destroyAll(() => process.exit());
 	// CONSOLE OUTPUT:
 	// 2021-04-15T13:01:37.152+0200       Node JS is now shutting down due to pressing ctrl + c
 	// destroyed loggers\error
