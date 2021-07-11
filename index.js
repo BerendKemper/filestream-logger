@@ -173,6 +173,9 @@ function setNameAfterClose(error) {
     }
     this.context.next();
 };
+/**@callback formattedCallback @param {string} formattedString*/
+/**@callback formatter @param {array} data @param {formattedCallback} callback*/
+/**@callback onDestroyed @param {string} dirpath*/
 class FilestreamLogger extends ExtensibleFunction {
     #private;
     #constructMore(type, options) {
@@ -181,56 +184,35 @@ class FilestreamLogger extends ExtensibleFunction {
             throw new Error(`A logger at dirpath "${dirpath}" already exists`);
         this.#private = privFilestreamLoggers[dirpath] = new PrivateFilestreamLogger(this, dirpath, options);
     };
-    /**
-     * The fileStreamLogger is a log function and a class instance at the same time. The
-     * fileStreamLogger opens files for appending. Logging with fileStreamLogger first
-     * formats data into a string and writes a buffer from that string to the file and
-     * extended fileStreamLoggers.
-     * @param {string} type
-     * @param {Object} options
-     * @param {string} options.dir
-     * @param {string} options.name
-     * @param {Function} options.formatter
-     * @param {Array} options.extend
-     **/
+    /**The fileStreamLogger is a log function and a class instance at the same time. The fileStreamLogger opens files for appending. Logging with fileStreamLogger first formats data into a string and writes a buffer from that string to the file and extended fileStreamLoggers.
+     * @param {string} type @param {{dir:string name:string formatter:formatter extend:array}} options**/
     constructor(type, options = {}) {
         super((...data) => this.formatter(data, line => this.#private.write(Buffer.from(line + "\n", "utf8"))));
         this.#constructMore(type, options);
     };
-    /**
-     * The format method this fileStreamLoggers uses to serialize data.
-     * @param {Array} data
-     * @param {Function} callback
-     */
+    /**The format method this fileStreamLoggers uses to serialize data.
+     * @param {array} data @param {formattedCallback} callback*/
     formatter(data, callback) {
         callback(data.join(" "));
     };
-    /**
-     * This method pushes the callback in a queue, the callback is invoked only when
-     * all previous queued functions have finished.
-     * @param {Function} callback
-     */
+    /**This method pushes the callback in a queue, the callback is invoked only when all previous queued functions have finished.
+     * @param {function} callback*/
     onReady(callback) {
         if (typeof callback !== "function")
             throw new TypeError("callback must be a function");
         this.#private.queue.push(queueCallback, callback);
         return this;
     };
-    /**
-     * Extend more filestreamLoggers (even after it's been created).
-     * @param {FilestreamLogger} filestreamLogger
-     */
+    /**Extend more filestreamLoggers (even after it's been created).
+     * @param {FilestreamLogger} filestreamLogger*/
     extend(filestreamLoggers) {
         Array.isArray(filestreamLoggers)
             ? this.#private.extend(filestreamLoggers)
             : this.#private.extend([filestreamLoggers]);
         return this;
     };
-    /**
-     * This method creates a new file to which the fileStreamLoggers logs to and it
-     * updates the readable property filepath.
-     * @param {String} name
-     */
+    /**This method creates a new file to which the fileStreamLoggers logs to and it updates the readable property filepath.
+     * @param {string} name*/
     setName(name) {
         const filepath = this.#private.filepath;
         const newFilepath = this.#private.filepath = path.join(this.#private.dirpath, name + ".log");
@@ -242,13 +224,8 @@ class FilestreamLogger extends ExtensibleFunction {
             });
         return this;
     };
-    /**
-     * Closes the file descriptor, destroys the log file at the fileStreamLogger's filepath if
-     * it has no content, removes the directory if there were no (log-)files and removes
-     * this fileStreamLogger from all fileStreamLoggers that were extended from this
-     * fileStreamLogger.
-     * @param {Function} callback
-     */
+    /**Closes the file descriptor, destroys the log file at the fileStreamLogger's filepath if it has no content, removes the directory if there were no (log-)files and removes this fileStreamLogger from all fileStreamLoggers that were extended from this fileStreamLogger.
+     * @param {onDestroyed} callback*/
     destroy(callback = dirpath => console.log("destroyed", dirpath)) {
         this.#private.queue.push(queueDestroy, {
             filepath: path.toNamespacedPath(this.#private.filepath),
@@ -260,16 +237,11 @@ class FilestreamLogger extends ExtensibleFunction {
     #removePrivate() {
         this.#private = null;
     };
-    /**
-     * Readable property of the dirpath is used internally to store the fileStreamLogger
-     * which allows extending fileStreamLoggers.
-     */
+    /**Readable property of the dirpath is used internally to store the fileStreamLogger which allows extending fileStreamLoggers.*/
     get dirpath() {
         return this.#private.dirpath;
     };
-    /**
-     * Readable property of the path from the file that is currently being logged to.
-     */
+    /**Readable property of the path from the file that is currently being logged to.*/
     get filepath() {
         return this.#private.filepath;
     };
