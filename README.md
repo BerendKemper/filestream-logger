@@ -1,129 +1,199 @@
 # filestream-logger
-A logger that creates a log-dir, that may change the logger's filename, that may use a formatter and that allows and extending various logger types.
+<div>
+    A logger that creates a log-dir, that may change the logger's filename, that may use a formatter and that allows and extending various logger types.
+</div>
 <pre><code>npm i filestream-logger</code></pre>
 
 ```javascript
 const FilestreamLogger = require("filestream-logger");
 ```
-<h2>Class: <code>FilestreamLogger</code></h2>
+<div>
+    <h2>Class: <code>FilestreamLogger</code></h2>
+</div>
 
-<h3><code>new FilestreamLogger(type[,options])</code></h3>
-<ul>
-	<details>
-		<summary>
-			<code>type</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a> parameter is <b>required!</b>
-		</summary>
-		The <code>type</code> parameter determines the name of the sub-directory in which the <code>filestreamLogger</code> creates log-files. If the sub-directory did not exists the creation is asynchronously queued.
-	</details>
-	<details>
-		<summary>
-			<code>options</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object">&lt;Object&gt;</a>
-		</summary>
-		<ul>
-			<details>
-				<summary>
-					<code>dir</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a> Default: <code>"loggers"</code>
-				</summary>
-				The <code>dir</code> option determines the name of the main-directory in which the <code>filestreamLogger</code> creates a sub-directory which in turn is where the log-files are created. If the main-directory did not exists the creation is asynchronously queued.
-			</details>
-			<details>
-				<summary>
-					<code>name</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a> Default: <code>new Date().toLocaleDateString()</code>
-				</summary>
-				The <code>name</code> option determines how the first log-file is named. If the log-file did not exists the creation is asynchronously queued.
-			</details>
-			<details>
-				<summary>
-					<code>formatter</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">&lt;Function&gt;</a> Default: <code>(data, callback) => callback(data.join(" "))</code>
-				</summary>
-				<ul>
-					<details>
-						<summary>
-							<code>data</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>
-						</summary>
-						If the <code>formatter</code> cannot format objects into a formatted string, it is recommended  that the <code>data</code> should contain only <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#primitive_values">&lt;primitive values&gt;</a>. This does not apply if a developer wrote a formatter that can format objects into formatted string such as console.log can.
-					</details>
-					<details>
-						<summary>
-							<code>callback</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">&lt;Function&gt;</a> parameter is <b>required!</b>
-						</summary>
-						Invoke <code>callback</code> and pass over a fromatted-string so that it can be written to the log-file.
-					</details>
-				</ul>
-				The <code>formatter</code> is a function that must produce a fromatted-string from the items of the <code>data</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>. When the <code>formatter</code> has finished to produce a fromatted-string, <code>callback</code> must be invoked and the fromatted-string must be passed as parameter.
-			</details>
-			<details>
-				<summary>
-					<code>extend</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>
-				</summary>
-				The <code>extend</code> option must contain <code>filestreamLoggers</code>. The created <code>filestreamLogger</code> stores the <code>filestreamLoggers</code> from <code>extend</code> internally. Whenever this <code>filestreamLogger</code> is invoked to log data, the formatted text is also passed over to all extended <code>filestreamLoggers</code>. Checkout the examples to see how an logger.error is extended with a logger.log.
-			</details>
-		</ul>
-	</details>
-</ul>
-<h3><code>filestreamLogger(...data)</code></h3>
-<ul>
-	<details>
-		<summary>
-			<code>...data</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>
-		</summary>
-		The <code>data</code> catches all parameters passed over into a single array, just like <a href="https://developer.mozilla.org/en-US/docs/Web/API/Console/log">console.log(...data)</a>. The <code>data</code> is passed over as a whole array to <code>formatter</code>.
-	</details>
-</ul>
-The <code>filestreamLogger</code> instance is the logging <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">Function</a> and when invoked it immediately invokes <code>formatter</code> followed by writing the formatted string to the log-file.
-<h3><code>filestreamLogger.setName(name)</code></h3>
-<ul>
-	<details>
-		<summary>
-			<code>name</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a>
-		</summary>
-		If <code>name</code> is set to the name it already had nothing will happen.
-	</details>
-</ul>
-This method immediately updates the <code>name</code> and <code>filepath</code> and when all previously queued functions have finished it <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_open_path_flags_mode_callback">opens</a> a new <code>fd</code> to the new <code>filepath</code>, checks the size of the old <code>filepath</code> through <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_fstat_fd_options_callback">fstat</a> to see if it the log-file has content, <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_close_fd_callback">closes</a> the old <code>filepath</code>'s and <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_unlink_path_callback">deletes</a> the old log-file if it has no content.
-<h3><code>filestreamLogger.onReady(callback)</code></h3>
-<ul>
-	<details>
-		<summary>
-			<code>callback</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">&lt;Function&gt;</a>
-		</summary>
-		If <code>callback</code> is not a function the extecution of <code>callback</code> throws a TypeError.
-	</details>
-</ul>
-This method invokes <code>callback</code> when all previously queued functions have finished.
-<h3><code>filestreamLogger.extend(filestreamLogger)</code></h3>
-<ul>
-	<details>
-		<summary>
-			<code>filestreamLogger</code> &lt;FilestreamLogger&gt; | <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>
-		</summary>
-		If <code>filestreamLogger</code> is an Array checks if the values of the Array are <code>FilestreamLogger</code>, otherwise checks if <code>filestreamLogger</code> is a <code>FilestreamLogger</code> and throws a TypeError if not a <code>FilestreamLogger</code>.
-	</details>
-</ul>
-This method allows additionaly extending a <code>filestreamLogger</code> after being created. It finds the <code>filestreamLogger</code>'s <code>xLog</code> function and stored it. Whenever the <code>filestreamLogger</code> is invoked to log data, the formatted string is also passed over to all <code>xLogs</code>.
-<h3><code>filestreamLogger.destroy(callback)</code></h3>
-<ul>
-	<details>
-		<summary>
-			<code>callback</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">&lt;Function&gt;</a> Default: <code>dirpath => console.log("destroyed", dirpath)</code>
-		</summary>
-		<ul>
-			<details>
-				<summary>
-					<code>dirpath</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a>
-				</summary>
-				The <code>callback</code> is invoked with the <code>filestreamLogger</code>'s <code>dirpath</code> as parameter.
-			</details>
-		</ul>
-		If <code>callback</code> is not a function throws a TypeError. Since the logger is destroyed the internal callback queue is cleared and therefore a <code>callback</code> parameter is usefull.
-	</details>
-</ul>
-This method checks the size of the log-file with <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_fstat_fd_options_callback">fstat</a> to see if it the log-file has content, <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_close_fd_callback">closes</a> the log-file's fd, deletes with <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_unlink_path_callback">unlink</a> the log-file if it has no content, deletes with <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_rmdir_path_options_callback">rmdir</a> the directory if there were no log-files in it, removes this <code>filestreamLogger</code> from any other <code>filestreamLogger</code>'s extending and sets any internal properties that have Object values to <code>null</code> so that everything can be garbage collected. Check out the example below where logger.noob get destroyed and entirely garbage collected.
-<h3><code>filestreamLogger.dirpath</code></h3>
-Readable property <code>dirpath</code> is created by <a href="https://nodejs.org/dist/latest-v14.x/docs/api/path.html#path_path_join_paths">path.join</a>(<code>dir</code>, <code>type</code>). This property never changes and it used to get a <code>filestreamLogger</code>'s <code>xLog</code>.
-<h3><code>filestreamLogger.filepath</code></h3>
-Readable property <code>filepath</code> is created by <a href="https://nodejs.org/dist/latest-v14.x/docs/api/path.html#path_path_join_paths">path.join</a>(<code>dirpath</code>, <code>name</code>). This property is updated when <code>setName</code> has been invoked.
-<h2>Examples</h2>
+<div>
+    <h3><code>new FilestreamLogger(type[,options])</code></h3>
+    <ul>
+        <details>
+            <summary>
+                <code>type</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a> parameter is <b>required!</b>
+            </summary>
+            <div>
+                The type parameter determines the name of the sub-directory in which the filestreamLogger creates log-files. If the sub-directory did not exists the creation is asynchronously queued.
+            </div>
+        </details>
+        <details>
+            <summary>
+                <code>options</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object">&lt;Object&gt;</a>
+            </summary>
+            <ul>
+                <details>
+                    <summary>
+                        <code>dir</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a> Default: <code>"loggers"</code>
+                    </summary>
+                    <div>
+                        The dir option determines the name of the main-directory in which the filestreamLogger creates a sub-directory which in turn is where the log-files are created. If the main-directory did not exists the creation is asynchronously queued.
+                    </div>
+                </details>
+                <details>
+                    <summary>
+                        <code>name</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a> Default: <code>new Date().toLocaleDateString()</code>
+                    </summary>
+                    <div>
+                        The name option determines how the first log-file is named. If the log-file did not exists the creation is asynchronously queued.
+                    </div>
+                </details>
+                <details>
+                    <summary>
+                        <code>formatter</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">&lt;Function&gt;</a> Default: <code>(data, callback) => callback(data.join(" "))</code>
+                    </summary>
+                    <div><b><code>function formatter(data, callback) {}</code></b></div>
+                    <ul>
+                        <details>
+                            <summary>
+                                <code>data</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>
+                            </summary>
+                            <div>
+                                If the formatter cannot format objects into a formatted string, it is recommended that the data should contain only <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#primitive_values">&lt;primitive values&gt;</a>. This does not apply if a developer wrote a formatter that can format objects into formatted string such as console.log can.
+                            </div>
+                        </details>
+                        <details>
+                            <summary>
+                                <code>callback</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">&lt;Function&gt;</a> parameter is <b>required!</b>
+                            </summary>
+                            <div><b><code>function callback(text) {}</code></b></div>
+                            <div>
+                                Invoke callback and pass over a fromatted-string so that it can be written to the log-file.
+                            </div>
+                        </details>
+                    </ul>
+                    <div>
+                        The formatter is a function that must produce a fromatted-string from the items of the data <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>. When the formatter has finished to produce a fromatted-string, callback must be invoked and the fromatted-string must be passed as parameter.
+                    </div>
+                </details>
+                <details>
+                    <summary>
+                        <code>extend</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>
+                    </summary>
+                    <div>
+                        The extend option must contain filestreamLoggers. The created filestreamLogger stores the extended filestreamLoggers. Whenever this filestreamLogger is invoked to log data, the formatted text is also passed over to all extended filestreamLoggers. Checkout the examples to see how an logger.error is extended with a logger.log.
+                    </div>
+                </details>
+            </ul>
+        </details>
+    </ul>
+</div>
+
+<div>
+    <h3><code>filestreamLogger(...data)</code></h3>
+    <ul>
+        <details>
+            <summary>
+                <code>...data</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>
+            </summary>
+            <div>
+                The data catches all parameters passed over into a single array, just like <a href="https://developer.mozilla.org/en-US/docs/Web/API/Console/log">console.log(...data)</a>. The data is passed over as a whole array to formatter.
+            </div>
+        </details>
+    </ul>
+    <div>
+        The filestreamLogger instance is the logging <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">Function</a> and when invoked it immediately invokes formatter followed by writing the formatted string to the log-file.
+    </div>
+</div>
+
+<div>
+    <h3><code>filestreamLogger.setName(name)</code></h3>
+    <ul>
+        <details>
+            <summary>
+                <code>name</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a>
+            </summary>
+            <div>
+                If name is set to the name it already had nothing will happen.
+            </div>
+        </details>
+    </ul>
+    <div>
+        This method immediately updates the name and filepath and when all previously queued functions have finished it <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_open_path_flags_mode_callback">opens</a> a new fd to the new filepath, checks the size of the old filepath through <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_fstat_fd_options_callback">fstat</a> to see if it the log-file has content, <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_close_fd_callback">closes</a> the old filepath and <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_unlink_path_callback">deletes</a> the old log-file if it has no content.
+    </div>
+</div>
+
+<div>
+    <h3><code>filestreamLogger.onReady(callback)</code></h3>
+    <ul>
+        <details>
+            <summary>
+                <code>callback</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">&lt;Function&gt;</a>
+            </summary>
+            <div><b><code>function callback() {}</code></b></div>
+            <div>
+                If callback is not a function the extecution of callback throws a TypeError.
+            </div>
+        </details>
+    </ul>
+    <div>
+        This method invokes callback when all previously queued functions have finished.
+    </div>
+</div>
+
+<div>
+    <h3><code>filestreamLogger.extend(filestreamLogger)</code></h3>
+    <ul>
+        <details>
+            <summary>
+                <code>filestreamLogger</code> &lt;FilestreamLogger&gt; | <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">&lt;Array&gt;</a>
+            </summary>
+            <div>
+                If filestreamLogger is an Array checks if the values of the Array are FilestreamLogger, otherwise checks if filestreamLogger is a FilestreamLogger and throws a TypeError if not a FilestreamLogger.
+            </div>
+        </details>
+    </ul>
+    <div>
+        This method allows additionaly extending a filestreamLogger after being created. It finds the filestreamLogger's xLog function and stored it. Whenever the filestreamLogger is invoked to log data, the formatted string is also passed over to all xLogs.
+    </div>
+</div>
+
+<div>
+    <h3><code>filestreamLogger.destroy(callback)</code></h3>
+    <ul>
+        <details>
+            <summary>
+                <code>callback</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">&lt;Function&gt;</a> Default: <code>dirpath => console.log("destroyed", dirpath)</code>
+            </summary>
+            <div><b><code>function callback(dirpath) {}</code></b></div>
+            <ul>
+                <details>
+                    <summary>
+                        <code>dirpath</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type">&lt;string&gt;</a>
+                    </summary>
+                    <div>
+                        The callback is invoked with the filestreamLogger's dirpath as parameter.
+                    </div>
+                </details>
+            </ul>
+            <div>
+                If callback is not a function throws a TypeError. Since the logger is destroyed the internal callback queue is cleared and therefore a callback parameter is usefull.
+            </div>
+        </details>
+    </ul>
+    <div>
+        This method checks the size of the log-file with <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_fstat_fd_options_callback">fstat</a> to see if it the log-file has content, <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_close_fd_callback">closes</a> the log-file's fd, deletes with <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_unlink_path_callback">unlink</a> the log-file if it has no content, deletes with <a href="https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_fs_rmdir_path_options_callback">rmdir</a> the directory if there were no log-files in it, removes this filestreamLogger from any other filestreamLogger's extending and sets any internal properties that have Object values to <code>null</code> so that everything can be garbage collected. Check out the example below where logger.noob get destroyed and entirely garbage collected.
+    </div>
+</div>
+
+<div>
+    <h3><code>filestreamLogger.dirpath</code></h3>
+    Readable property dirpath is created by <a href="https://nodejs.org/dist/latest-v14.x/docs/api/path.html#path_path_join_paths">path.join</a>(dir, type). This property never changes and it used to get a filestreamLogger's xLog.
+</div>
+
+<div>
+    <h3><code>filestreamLogger.filepath</code></h3>
+    Readable property filepath is created by <a href="https://nodejs.org/dist/latest-v14.x/docs/api/path.html#path_path_join_paths">path.join</a>(dirpath, name). This property is updated when setName has been invoked.
+</div>
+
+<div>
+    <h2>Examples</h2>
+</div>
 
 ```javascript
 const FilestreamLogger = require("filestream-logger");

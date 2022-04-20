@@ -18,8 +18,8 @@ const filestreamLoggers = {};
 /**@callback formatter @param {array} data @param {formattedCallback} callback*/
 /**@callback onDestroyed @param {string} dirpath*/
 class FilestreamLogger extends ExtensibleFunction {
-    #extendedFrom = null;
-    #extendingTo = null;
+    #extendedFrom = [];
+    #extendingTo = [];
     #filepath = null;
     #dirpath = null;
     #queue = null;
@@ -32,8 +32,6 @@ class FilestreamLogger extends ExtensibleFunction {
         if (filestreamLoggers[this.#dirpath])
             throw new Error(`A logger at dirpath "${this.#dirpath}" already exists`);
         filestreamLoggers[this.#dirpath] = this;
-        this.#extendingTo = [];
-        this.#extendedFrom = [];
         this.#queue = new CallbackQueue(this);
         this.#filepath = path.join(this.#dirpath, (options?.name || yyyymmdd()) + ".log");
         if (Array.isArray(options?.extend) && options.extend.length > 0)
@@ -49,7 +47,8 @@ class FilestreamLogger extends ExtensibleFunction {
         mkdir(path.toNamespacedPath(this.#dirpath), 0o777, true, req);
     };
     #openFileAfterMkdir(error) {
-        if (error) throw error;
+        if (error)
+            throw error;
         const { context } = this;
         const req = new FSReqCallback();
         req.oncomplete = context.logger.#openFileInitialAfterOpen;
@@ -57,7 +56,8 @@ class FilestreamLogger extends ExtensibleFunction {
         open(context.filepath, o_AppendCreat, 0o666, req);
     };
     #openFileInitialAfterOpen(error, fd) {
-        if (error) throw error;
+        if (error)
+            throw error;
         const { context } = this;
         context.logger.#fd = fd;
         context.next();
@@ -89,9 +89,9 @@ class FilestreamLogger extends ExtensibleFunction {
     /**Extend more filestreamLoggers (even after it's been created).
      * @param {FilestreamLogger} filestreamLogger*/
     extend(filestreamLoggers) {
-        Array.isArray(filestreamLoggers)
-            ? this.#extend(filestreamLoggers)
-            : this.#extend([filestreamLoggers]);
+        this.#extend(Array.isArray(filestreamLoggers)
+            ? filestreamLoggers
+            : [filestreamLoggers])
         return this;
     };
     #extend(loggers) {
@@ -138,7 +138,8 @@ class FilestreamLogger extends ExtensibleFunction {
         open(context.newFilepathNamespaced, o_AppendCreat, 0o666, req);
     };
     #destroyAfterOpen(error, fd) {
-        if (error) throw error;
+        if (error)
+            throw error;
         const req = new FSReqCallback();
         req.oncomplete = this.context.logger.#destroyAfterStat;
         req.context = this.context;
@@ -146,7 +147,8 @@ class FilestreamLogger extends ExtensibleFunction {
         fstat(this.context.logger.#fd, false, req);
     };
     #setNameAfterClose(error) {
-        if (error) throw error;
+        if (error)
+            throw error;
         const { context } = this;
         context.logger.#fd = context.fd;
         if (context.bytes === 0) {
@@ -172,7 +174,8 @@ class FilestreamLogger extends ExtensibleFunction {
         fstat(this.#fd, false, req);
     };
     #destroyAfterStat(error, stats) {
-        if (error) throw error;
+        if (error)
+            throw error;
         const { context } = this;
         context.bytes = (stats[1] & S_IFMT) === S_IFREG ? stats[8] : 0;
         const req = new FSReqCallback();
@@ -183,7 +186,8 @@ class FilestreamLogger extends ExtensibleFunction {
         close(context.logger.#fd, req);
     };
     #destroyafterClose(error) {
-        if (error) throw error;
+        if (error)
+            throw error;
         const { context } = this;
         if (context.bytes === 0) {
             const req = new FSReqCallback();
@@ -194,7 +198,8 @@ class FilestreamLogger extends ExtensibleFunction {
         context.logger.#destroy(context);
     };
     #destroyAfterUnlink(error) {
-        if (error) throw error;
+        if (error)
+            throw error;
         const { context } = this;
         context.dirpathNameSpaced = path.toNamespacedPath(context.logger.#dirpath);
         const req = new FSReqCallback();
@@ -203,7 +208,8 @@ class FilestreamLogger extends ExtensibleFunction {
         readdir(context.dirpathNameSpaced, "utf8", false, req);
     };
     #destroyAfterReaddir(error, files) {
-        if (error) throw error;
+        if (error)
+            throw error;
         const { context } = this;
         if (files.length === 0) {
             const req = new FSReqCallback();
@@ -214,7 +220,8 @@ class FilestreamLogger extends ExtensibleFunction {
         context.logger.#destroy(context);
     };
     #destroyAfterRmdir(error) {
-        if (error) throw error;
+        if (error)
+            throw error;
         this.context.logger.#destroy(this.context);
     };
     #destroy(context) {
@@ -239,7 +246,8 @@ class FilestreamLogger extends ExtensibleFunction {
         return this.#filepath;
     };
     static destroyAll(callback = () => console.log("closed all fileOperators")) {
-        if (typeof callback !== "function") throw new TypeError("callback is not a function");
+        if (typeof callback !== "function")
+            throw new TypeError("callback is not a function");
         const awaitCounter = dirpath => {
             console.log("destroyed", dirpath);
             if (--counter === 0)
