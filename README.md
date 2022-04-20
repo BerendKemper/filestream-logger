@@ -61,6 +61,7 @@ const FilestreamLogger = require("filestream-logger");
                             <summary>
                                 <code>callback</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">&lt;Function&gt;</a> parameter is <b>required!</b>
                             </summary>
+                            <div><b><code>callback(text)</code></b></div>
                             <div>
                                 Invoke callback and pass over a fromatted-string so that it can be written to the log-file.
                             </div>
