@@ -27,7 +27,7 @@ class FilestreamLogger extends ExtensibleFunction {
     /**The fileStreamLogger is a log function and a class instance at the same time. The fileStreamLogger opens files for appending. Logging with fileStreamLogger first formats data into a string and writes a buffer from that string to the file and extended fileStreamLoggers.
      * @param {string} type @param {{dir:string name:string formatter:formatter extend:FilestreamLogger[]}} options**/
     constructor(type, options = {}) {
-        super((...data) => this.formatter(data, line => this.#write(Buffer.from(line + "\n", "utf8"))));
+        super(new.target.#selfConstructor);
         this.#dirpath = path.join(options?.dir || "loggers", type);
         if (filestreamLoggers[this.#dirpath])
             throw new Error(`A logger at dirpath "${this.#dirpath}" already exists`);
@@ -39,13 +39,42 @@ class FilestreamLogger extends ExtensibleFunction {
         if (typeof options?.formatter === "function")
             this.formatter = options.formatter;
         this.#queue.push(this.#queueOpenFile, this.#filepath);
-    };
+    }
+    static get #selfConstructor() {
+        const self = (...data) => self.formatter(data, writePtr);
+        const writePtr = line => self.#write(Buffer.from(line + "\n", "utf8"));
+        return self;
+    }
+    /**The format method this fileStreamLoggers uses to serialize data.
+     * @param {array} data @param {formattedCallback} callback*/
+    formatter(data, callback) {
+        callback(data.join(" "));
+    }
+    #write(lineBuffer) {
+        this.#queue.push(this.#queueLogBuffer, lineBuffer);
+        for (const xLogger of this.#extendingTo)
+            xLogger.#xWrite(lineBuffer);
+    }
+    #xWrite(lineBuffer) {
+        this.#queue.push(this.#queueLogBuffer, lineBuffer);
+    }
+    #queueLogBuffer(next, lineBuffer) {
+        const req = new FSReqCallback();
+        req.oncomplete = this.#logBufferWrite;
+        req.next = next;
+        writeBuffer(this.#fd, lineBuffer, 0, lineBuffer.length, null, req);
+    }
+    #logBufferWrite(error, bytesWritten) {
+        if (error)
+            throw error;
+        this.next();
+    }
     #queueOpenFile(next, filepath) {
         const req = new FSReqCallback();
         req.oncomplete = this.#openFileAfterMkdir;
         req.context = { filepath, next, logger: this };
         mkdir(path.toNamespacedPath(this.#dirpath), 0o777, true, req);
-    };
+    }
     #openFileAfterMkdir(error) {
         if (error)
             throw error;
@@ -53,39 +82,14 @@ class FilestreamLogger extends ExtensibleFunction {
         const req = new FSReqCallback();
         req.oncomplete = context.logger.#openFileInitialAfterOpen;
         req.context = context;
-        open(context.filepath, o_AppendCreat, 0o666, req);
-    };
+        open(path.toNamespacedPath(context.filepath), o_AppendCreat, 0o666, req);
+    }
     #openFileInitialAfterOpen(error, fd) {
         if (error)
             throw error;
-        const { context } = this;
-        context.logger.#fd = fd;
-        context.next();
-    };
-    /**The format method this fileStreamLoggers uses to serialize data.
-     * @param {array} data @param {formattedCallback} callback*/
-    formatter(data, callback) {
-        callback(data.join(" "));
-    };
-    #write(lineBuffer) {
-        this.#queue.push(this.#queueLogBuffer, lineBuffer);
-        for (const xLogger of this.#extendingTo)
-            xLogger.#xWrite(lineBuffer);
-    };
-    #xWrite(lineBuffer) {
-        this.#queue.push(this.#queueLogBuffer, lineBuffer);
-    };
-    #queueLogBuffer(next, lineBuffer) {
-        const req = new FSReqCallback();
-        req.oncomplete = this.#logBufferWrite;
-        req.next = next;
-        writeBuffer(this.#fd, lineBuffer, 0, lineBuffer.length, null, req);
-    };
-    #logBufferWrite(error, bytesWritten) {
-        if (error)
-            throw error;
-        this.next();
-    };
+        this.context.logger.#fd = fd;
+        this.context.next();
+    }
     /**Extend more filestreamLoggers (even after it's been created).
      * @param {FilestreamLogger} filestreamLogger*/
     extend(filestreamLoggers) {
@@ -93,18 +97,16 @@ class FilestreamLogger extends ExtensibleFunction {
             ? filestreamLoggers
             : [filestreamLoggers])
         return this;
-    };
+    }
     #extend(loggers) {
         for (let logger of loggers) {
-            if (!filestreamLoggers[logger.#dirpath])
-                throw new TypeError(`Can only extend filestreamLoggers, found ${typeof logger}`);
             logger = filestreamLoggers[logger.#dirpath];
             if (logger.#extendedFrom.indexOf(this) > -1)
                 throw new Error("Cannot extend a filestreamLogger more than once");
             logger.#extendedFrom.push(this);
             this.#extendingTo.push(logger);
         }
-    };
+    }
     /**This method pushes the callback in a queue, the callback is invoked only when all previous queued functions have finished.
      * @param {function} callback*/
     onReady(callback) {
@@ -112,11 +114,11 @@ class FilestreamLogger extends ExtensibleFunction {
             throw new TypeError("callback must be a function");
         this.#queue.push(this.#queueCallback, callback);
         return this;
-    };
+    }
     #queueCallback(next, callback) {
         callback();
         next();
-    };
+    }
     /**This method creates a new file to which the fileStreamLoggers logs to and it updates the readable property filepath.
      * @param {string} name*/
     setName(name) {
@@ -129,14 +131,14 @@ class FilestreamLogger extends ExtensibleFunction {
                 newFilepathNamespaced: path.toNamespacedPath(newFilepath),
             });
         return this;
-    };
+    }
     #queueSetName(next, context) {
         context.next = next;
         const req = new FSReqCallback();
         req.oncomplete = this.#destroyAfterOpen;
         req.context = context;
         open(context.newFilepathNamespaced, o_AppendCreat, 0o666, req);
-    };
+    }
     #destroyAfterOpen(error, fd) {
         if (error)
             throw error;
@@ -157,7 +159,7 @@ class FilestreamLogger extends ExtensibleFunction {
             return unlink(context.filepathNamespaced, req);
         }
         context.next();
-    };
+    }
     /**Closes the file descriptor, destroys the log file at the fileStreamLogger's filepath if it has no content, removes the directory if there were no (log-)files and removes this fileStreamLogger from all fileStreamLoggers that were extended from this fileStreamLogger.
      * @param {onDestroyed} callback*/
     destroy(callback = dirpath => console.log("destroyed", dirpath)) {
@@ -166,13 +168,13 @@ class FilestreamLogger extends ExtensibleFunction {
             filepath: this.#filepath,
             callback,
         });
-    };
+    }
     #queueDestroy(next, context) {
         const req = new FSReqCallback();
         req.oncomplete = this.#destroyAfterStat;
         req.context = context;
         fstat(this.#fd, false, req);
-    };
+    }
     #destroyAfterStat(error, stats) {
         if (error)
             throw error;
@@ -184,7 +186,7 @@ class FilestreamLogger extends ExtensibleFunction {
             : context.logger.#destroyafterClose;
         req.context = context;
         close(context.logger.#fd, req);
-    };
+    }
     #destroyafterClose(error) {
         if (error)
             throw error;
@@ -196,7 +198,7 @@ class FilestreamLogger extends ExtensibleFunction {
             return unlink(path.toNamespacedPath(context.logger.#filepath), req);
         }
         context.logger.#destroy(context);
-    };
+    }
     #destroyAfterUnlink(error) {
         if (error)
             throw error;
@@ -206,7 +208,7 @@ class FilestreamLogger extends ExtensibleFunction {
         req.oncomplete = context.logger.#destroyAfterReaddir;
         req.context = context;
         readdir(context.dirpathNameSpaced, "utf8", false, req);
-    };
+    }
     #destroyAfterReaddir(error, files) {
         if (error)
             throw error;
@@ -218,12 +220,12 @@ class FilestreamLogger extends ExtensibleFunction {
             return rmdir(context.dirpathNameSpaced, req);
         }
         context.logger.#destroy(context);
-    };
+    }
     #destroyAfterRmdir(error) {
         if (error)
             throw error;
         this.context.logger.#destroy(this.context);
-    };
+    }
     #destroy(context) {
         this.#queue.destroy();
         this.#queue = null;
@@ -232,19 +234,21 @@ class FilestreamLogger extends ExtensibleFunction {
             xLogger.#extendedFrom.splice(xLogger.#extendedFrom.indexOf(this), 1);
         for (const xLogger of this.#extendedFrom)
             xLogger.#extendingTo.splice(xLogger.#extendingTo.indexOf(this), 1);
+        this.#extendingTo.length = 0;
+        this.#extendedFrom.length = 0;
         this.#extendingTo = null;
         this.#extendedFrom = null;
         delete (filestreamLoggers[this.#dirpath]);
         context.callback(this.#dirpath);
-    };
+    }
     /**Readable property of the dirpath is used internally to store the fileStreamLogger which allows extending fileStreamLoggers.*/
     get dirpath() {
         return this.#dirpath;
-    };
+    }
     /**Readable property of the path from the file that is currently being logged to.*/
     get filepath() {
         return this.#filepath;
-    };
+    }
     static destroyAll(callback = () => console.log("closed all fileOperators")) {
         if (typeof callback !== "function")
             throw new TypeError("callback is not a function");
@@ -256,6 +260,6 @@ class FilestreamLogger extends ExtensibleFunction {
         let counter = 0;
         for (const dirpath in filestreamLoggers)
             filestreamLoggers[dirpath].destroy(awaitCounter, counter++);
-    };
-};
+    }
+}
 module.exports = FilestreamLogger;
