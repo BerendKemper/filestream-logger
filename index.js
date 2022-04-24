@@ -58,22 +58,22 @@ class FilestreamLogger extends ExtensibleFunction {
     #xWrite(lineBuffer) {
         this.#queue.push(this.#queueLogBuffer, lineBuffer);
     }
-    #queueLogBuffer(next, lineBuffer) {
+    #queueLogBuffer(logger, next, lineBuffer) {
         const req = new FSReqCallback();
-        req.oncomplete = this.#logBufferWrite;
+        req.oncomplete = logger.#logBufferWrite;
         req.next = next;
-        writeBuffer(this.#fd, lineBuffer, 0, lineBuffer.length, null, req);
+        writeBuffer(logger.#fd, lineBuffer, 0, lineBuffer.length, null, req);
     }
     #logBufferWrite(error, bytesWritten) {
         if (error)
             throw error;
         this.next();
     }
-    #queueOpenFile(next, filepath) {
+    #queueOpenFile(logger, next, filepath) {
         const req = new FSReqCallback();
-        req.oncomplete = this.#openFileAfterMkdir;
-        req.context = { filepath, next, logger: this };
-        mkdir(path.toNamespacedPath(this.#dirpath), 0o777, true, req);
+        req.oncomplete = logger.#openFileAfterMkdir;
+        req.context = { filepath, next, logger };
+        mkdir(path.toNamespacedPath(logger.#dirpath), 0o777, true, req);
     }
     #openFileAfterMkdir(error) {
         if (error)
@@ -132,10 +132,10 @@ class FilestreamLogger extends ExtensibleFunction {
             });
         return this;
     }
-    #queueSetName(next, context) {
+    #queueSetName(logger, next, context) {
         context.next = next;
         const req = new FSReqCallback();
-        req.oncomplete = this.#destroyAfterOpen;
+        req.oncomplete = logger.#destroyAfterOpen;
         req.context = context;
         open(context.newFilepathNamespaced, o_AppendCreat, 0o666, req);
     }
@@ -169,11 +169,11 @@ class FilestreamLogger extends ExtensibleFunction {
             callback,
         });
     }
-    #queueDestroy(next, context) {
+    #queueDestroy(logger, next, context) {
         const req = new FSReqCallback();
-        req.oncomplete = this.#destroyAfterStat;
+        req.oncomplete = logger.#destroyAfterStat;
         req.context = context;
-        fstat(this.#fd, false, req);
+        fstat(logger.#fd, false, req);
     }
     #destroyAfterStat(error, stats) {
         if (error)
