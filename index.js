@@ -14,9 +14,6 @@ class ExtensibleFunction extends Function {
     };
 };
 const filestreamLoggers = {};
-/**@callback formattedCallback @param {string} formattedString*/
-/**@callback formatter @param {array} data @param {formattedCallback} callback*/
-/**@callback onDestroyed @param {string} dirpath*/
 class FilestreamLogger extends ExtensibleFunction {
     #extendedFrom = [];
     #extendingTo = [];
@@ -24,8 +21,6 @@ class FilestreamLogger extends ExtensibleFunction {
     #dirpath = null;
     #queue = null;
     #fd = null;
-    /**The fileStreamLogger is a log function and a class instance at the same time. The fileStreamLogger opens files for appending. Logging with fileStreamLogger first formats data into a string and writes a buffer from that string to the file and extended fileStreamLoggers.
-     * @param {string} type @param {{dir:string name:string formatter:formatter extend:FilestreamLogger[]}} options**/
     constructor(type, options = {}) {
         super(new.target.#selfConstructor);
         this.#dirpath = path.join(options?.dir || "loggers", type);
@@ -45,8 +40,6 @@ class FilestreamLogger extends ExtensibleFunction {
         const writePtr = line => self.#write(Buffer.from(line + "\n", "utf8"));
         return self;
     }
-    /**The format method this fileStreamLoggers uses to serialize data.
-     * @param {array} data @param {formattedCallback} callback*/
     formatter(data, callback) {
         callback(data.join(" "));
     }
@@ -90,8 +83,6 @@ class FilestreamLogger extends ExtensibleFunction {
         this.context.logger.#fd = fd;
         this.context.next();
     }
-    /**Extend more filestreamLoggers (even after it's been created).
-     * @param {FilestreamLogger} filestreamLogger*/
     extend(filestreamLoggers) {
         this.#extend(Array.isArray(filestreamLoggers)
             ? filestreamLoggers
@@ -107,8 +98,6 @@ class FilestreamLogger extends ExtensibleFunction {
             this.#extendingTo.push(logger);
         }
     }
-    /**This method pushes the callback in a queue, the callback is invoked only when all previous queued functions have finished.
-     * @param {function} callback*/
     onReady(callback) {
         if (typeof callback !== "function")
             throw new TypeError("callback must be a function");
@@ -119,8 +108,6 @@ class FilestreamLogger extends ExtensibleFunction {
         callback();
         next();
     }
-    /**This method creates a new file to which the fileStreamLoggers logs to and it updates the readable property filepath.
-     * @param {string} name*/
     setName(name) {
         const filepath = this.#filepath;
         const newFilepath = this.#filepath = path.join(this.#dirpath, name + ".log");
@@ -160,8 +147,6 @@ class FilestreamLogger extends ExtensibleFunction {
         }
         context.next();
     }
-    /**Closes the file descriptor, destroys the log file at the fileStreamLogger's filepath if it has no content, removes the directory if there were no (log-)files and removes this fileStreamLogger from all fileStreamLoggers that were extended from this fileStreamLogger.
-     * @param {onDestroyed} callback*/
     destroy(callback = dirpath => console.log("destroyed", dirpath)) {
         this.#queue.push(this.#queueDestroy, {
             logger: this,
@@ -241,11 +226,9 @@ class FilestreamLogger extends ExtensibleFunction {
         delete (filestreamLoggers[this.#dirpath]);
         context.callback(this.#dirpath);
     }
-    /**Readable property of the dirpath is used internally to store the fileStreamLogger which allows extending fileStreamLoggers.*/
     get dirpath() {
         return this.#dirpath;
     }
-    /**Readable property of the path from the file that is currently being logged to.*/
     get filepath() {
         return this.#filepath;
     }
